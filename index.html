@@ -41,6 +41,15 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+
+  <!--
+    Chrome/Edge MP4 export.
+    Mediabunny uses the browser's WebCodecs implementation to decode WebM
+    segments and encode a genuine AVC/H.264 MP4. No FFmpeg.wasm or
+    SharedArrayBuffer headers are required.
+  -->
+  <script type="module" src="webcodecs_export.js"></script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
