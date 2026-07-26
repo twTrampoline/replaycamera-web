@@ -5,7 +5,8 @@ import {
   Input,
   Mp4OutputFormat,
   Output,
-  VideoSampleSink,
+  CanvasSink,
+  VideoSample,
   VideoSampleSource,
 } from 'https://cdn.jsdelivr.net/npm/mediabunny@1.51.0/+esm';
 
@@ -75,6 +76,11 @@ function downloadMp4(buffer, seconds) {
 window.sportReplayExportMp4Blobs = async function sportReplayExportMp4Blobs(
   blobLike,
   requestedSeconds,
+  requestedRangeStart,
+  requestedRangeEnd,
+  requestedPortrait,
+  requestedRotate180,
+  requestedMirror,
 ) {
   try {
     if (!('VideoEncoder' in window) || !('VideoDecoder' in window)) {
@@ -103,25 +109,73 @@ window.sportReplayExportMp4Blobs = async function sportReplayExportMp4Blobs(
       (sum, segment) => sum + segment.duration,
       0,
     );
-    const trimFromStart = Math.max(0, totalDuration - seconds);
-    const exportDuration = Math.min(seconds, totalDuration);
+
+    const rangeStart = Math.max(
+      0,
+      Math.min(totalDuration, Number(requestedRangeStart) || 0),
+    );
+    const rangeEnd = Math.max(
+      rangeStart,
+      Math.min(
+        totalDuration,
+        Number(requestedRangeEnd) || (rangeStart + seconds),
+      ),
+    );
+    const exportDuration = Math.min(seconds, rangeEnd - rangeStart);
 
     if (exportDuration <= 0) {
-      throw new Error('The selected recording has no usable duration.');
+      throw new Error('The selected recording range has no usable duration.');
     }
 
+    let segmentCursor = 0;
     const firstUsableSegment =
-      segments.find((segment, index) => {
-        const before = segments
-          .slice(0, index)
-          .reduce((sum, value) => sum + value.duration, 0);
-        return before + segment.duration > trimFromStart;
+      segments.find((segment) => {
+        const segmentEnd = segmentCursor + segment.duration;
+        const usable = segmentEnd > rangeStart;
+        segmentCursor = segmentEnd;
+        return usable;
       }) ?? segments[0];
+
+    const targetPortrait = requestedPortrait === true;
+    const rotate180 = requestedRotate180 === true;
+    const mirror = requestedMirror === true;
+
+    const rawPortrait =
+      firstUsableSegment.height > firstUsableSegment.width;
+
+    let rotationDegrees = targetPortrait === rawPortrait ? 0 : 90;
+    if (rotate180) rotationDegrees = (rotationDegrees + 180) % 360;
+
+    const quarterTurn = rotationDegrees === 90 || rotationDegrees === 270;
+    const outputWidth = Math.max(
+      2,
+      (quarterTurn
+        ? firstUsableSegment.height
+        : firstUsableSegment.width) & ~1,
+    );
+    const outputHeight = Math.max(
+      2,
+      (quarterTurn
+        ? firstUsableSegment.width
+        : firstUsableSegment.height) & ~1,
+    );
+
+    console.log(
+      '[SportReplay] MP4 orientation:',
+      {
+        targetPortrait,
+        rawPortrait,
+        rotationDegrees,
+        mirror,
+        outputWidth,
+        outputHeight,
+      },
+    );
 
     const encoderSupport = await VideoEncoder.isConfigSupported({
       codec: 'avc1.42001f',
-      width: Math.max(2, firstUsableSegment.width & ~1),
-      height: Math.max(2, firstUsableSegment.height & ~1),
+      width: outputWidth,
+      height: outputHeight,
       bitrate: DEFAULT_BITRATE,
       framerate: 30,
       latencyMode: 'quality',
@@ -159,33 +213,64 @@ window.sportReplayExportMp4Blobs = async function sportReplayExportMp4Blobs(
       const segmentEnd = segmentStart + segment.duration;
       inputTimeline = segmentEnd;
 
-      if (segmentEnd <= trimFromStart) {
+      if (segmentEnd <= rangeStart || segmentStart >= rangeEnd) {
         continue;
       }
 
-      const localTrim = Math.max(0, trimFromStart - segmentStart);
-      const absoluteStart = segment.firstTimestamp + localTrim;
-      const absoluteEnd = segment.firstTimestamp + segment.duration;
-      const sink = new VideoSampleSink(segment.track);
+      const localStart = Math.max(0, rangeStart - segmentStart);
+      const localEnd = Math.min(segment.duration, rangeEnd - segmentStart);
+      if (localEnd <= localStart) continue;
 
-      for await (const sample of sink.samples(absoluteStart, absoluteEnd)) {
+      const absoluteStart = segment.firstTimestamp + localStart;
+      const absoluteEnd = segment.firstTimestamp + localEnd;
+      const sink = new CanvasSink(segment.track, {
+        width: outputWidth,
+        height: outputHeight,
+        fit: 'contain',
+        rotation: rotationDegrees,
+        alpha: false,
+        poolSize: 3,
+      });
+
+      for await (const wrapped of sink.canvases(absoluteStart, absoluteEnd)) {
         const sourceRelativeTime = Math.max(
           0,
-          sample.timestamp - absoluteStart,
+          wrapped.timestamp - absoluteStart,
         );
         const newTimestamp = outputTimeline + sourceRelativeTime;
 
         if (newTimestamp >= exportDuration) {
-          sample.close();
           break;
         }
 
-        sample.setTimestamp(newTimestamp);
-
         const remaining = exportDuration - newTimestamp;
-        if (sample.duration > remaining) {
-          sample.setDuration(remaining);
+        const frameDuration = Math.min(wrapped.duration, remaining);
+
+        let sourceCanvas = wrapped.canvas;
+        let mirroredCanvas = null;
+
+        if (mirror) {
+          mirroredCanvas =
+            typeof OffscreenCanvas !== 'undefined'
+              ? new OffscreenCanvas(outputWidth, outputHeight)
+              : Object.assign(document.createElement('canvas'), {
+                  width: outputWidth,
+                  height: outputHeight,
+                });
+
+          const context = mirroredCanvas.getContext('2d', { alpha: false });
+          context.save();
+          context.translate(outputWidth, 0);
+          context.scale(-1, 1);
+          context.drawImage(sourceCanvas, 0, 0, outputWidth, outputHeight);
+          context.restore();
+          sourceCanvas = mirroredCanvas;
         }
+
+        const sample = new VideoSample(sourceCanvas, {
+          timestamp: newTimestamp,
+          duration: frameDuration,
+        });
 
         const keyFrame =
           frameCount === 0 ||
@@ -198,7 +283,7 @@ window.sportReplayExportMp4Blobs = async function sportReplayExportMp4Blobs(
         frameCount += 1;
       }
 
-      outputTimeline += Math.max(0, segment.duration - localTrim);
+      outputTimeline += Math.max(0, localEnd - localStart);
       if (outputTimeline >= exportDuration) break;
     }
 
