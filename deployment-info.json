@@ -1,1 +1,1 @@
-{"source_commit": "5c7d10d", "fixes": ["compare-media-source", "mp4-orientation", "export-busy-state"]}
+{"source_commit": "09603bf", "fixes": ["native-promise-bridge", "preserve-recording-orientation"], "chrome_bridge_tests": "passed"}

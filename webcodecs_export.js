@@ -244,7 +244,7 @@ window.sportReplayExportMp4Blobs = async function sportReplayExportMp4Blobs(
     const mirror = requestedMirror === true;
     const rawPortrait = firstUsableSegment.height > firstUsableSegment.width;
 
-    let rotationDegrees = targetPortrait === rawPortrait ? 0 : 90;
+    let rotationDegrees = requestedPortrait == null ? 0 : (targetPortrait === rawPortrait ? 0 : 90);
     rotationDegrees = (rotationDegrees + rotationQuarterTurns * 90) % 360;
 
     const quarterTurn = rotationDegrees === 90 || rotationDegrees === 270;

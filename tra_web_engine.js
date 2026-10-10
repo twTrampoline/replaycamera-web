@@ -668,7 +668,7 @@
         requestedSeconds,
         rangeStart,
         rangeEnd,
-        targetPortrait,
+        null, // Preserve the recorded orientation; current live layout may differ.
         0, // Rotation is already baked into the recorded canvas.
         false, // Mirroring is already baked into the recorded canvas.
       );
