@@ -1,1 +1,1 @@
-{"source_commit": "3895448", "fixes": ["camera-dialog", "repeated-error-alerts"], "built_for": "/replaycamera-web/"}
+{"source_commit": "5c7d10d", "fixes": ["compare-media-source", "mp4-orientation", "export-busy-state"]}

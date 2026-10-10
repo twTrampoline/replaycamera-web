@@ -478,41 +478,87 @@
     });
   }
 
+  let compareReady = false;
+  let comparePreparing = false;
+  let compareUrls = [];
+  async function loadCompareSnapshot(video, blobs, position) {
+    const source = new MediaSource();
+    const url = URL.createObjectURL(source);
+    compareUrls.push(url);
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('對比影片載入逾時，請重新選擇片段。')), 15000);
+      source.addEventListener('sourceopen', async () => {
+        try {
+          const buffer = source.addSourceBuffer(state.mimeType);
+          buffer.mode = 'segments';
+          for (const blob of blobs) {
+            const bytes = await blob.arrayBuffer();
+            await new Promise((done, fail) => {
+              const cleanup = () => { buffer.removeEventListener('updateend', finish); buffer.removeEventListener('error', error); };
+              const finish = () => { cleanup(); done(); };
+              const error = () => { cleanup(); fail(new Error('對比片段解碼失敗')); };
+              buffer.addEventListener('updateend', finish);
+              buffer.addEventListener('error', error);
+              try { buffer.appendBuffer(bytes); } catch (e) { cleanup(); fail(e); }
+            });
+          }
+          source.endOfStream();
+          if (!buffer.buffered.length) throw new Error('對比緩衝尚未就緒');
+          const ranges = buffer.buffered;
+          let target = ranges.start(0);
+          for (let i = 0; i < ranges.length; i++) {
+            if (position >= ranges.start(i)) target = Math.min(position, Math.max(ranges.start(i), ranges.end(i) - 0.1));
+          }
+          video.currentTime = target;
+          video.pause();
+          clearTimeout(timer); resolve();
+        } catch (e) { clearTimeout(timer); reject(e); }
+      }, {once:true});
+      video.src = url;
+      video.load();
+    });
+  }
+
   window.traWebEnginePrepareCompare = async function(beforeSeconds, afterSeconds) {
+    if (comparePreparing) return false;
+    comparePreparing = true;
+    compareReady = false;
+    state.lastError = '';
     try {
       ensureElements();
-      const available = state.chunks.map((item) => item.blob);
-      if (!available.length) return false;
+      await flushRecorderForExport();
+      const available = state.chunks.map(item => item.blob);
+      if (!available.length) throw new Error('請先等候建立錄影緩衝。');
       if (state.initChunk && available[0] !== state.initChunk) available.unshift(state.initChunk);
-      revokeCompareBlob();
-      state.compareBlobUrl = URL.createObjectURL(new Blob(available, { type: state.mimeType }));
-      state.compareVideoA.src = state.compareBlobUrl;
-      state.compareVideoB.src = state.compareBlobUrl;
-      state.compareVideoA.load();
-      state.compareVideoB.load();
-      await Promise.all([waitForMetadata(state.compareVideoA), waitForMetadata(state.compareVideoB)]);
-      const start = state.bufferStart;
-      const a = Math.max(start, Math.min(state.bufferEnd, Number(beforeSeconds) || start));
-      const b = Math.max(start, Math.min(state.bufferEnd, Number(afterSeconds) || start));
-      state.compareVideoA.currentTime = Math.max(0, a - start);
-      state.compareVideoB.currentTime = Math.max(0, b - start);
+      state.compareVideoA.pause(); state.compareVideoB.pause();
+      state.compareVideoA.removeAttribute('src'); state.compareVideoB.removeAttribute('src');
+      state.compareVideoA.load(); state.compareVideoB.load();
+      compareUrls.forEach(url => URL.revokeObjectURL(url)); compareUrls = [];
+      await Promise.all([
+        loadCompareSnapshot(state.compareVideoA, available, Number(beforeSeconds) || 0),
+        loadCompareSnapshot(state.compareVideoB, available, Number(afterSeconds) || 0)
+      ]);
       state.compareVideoA.playbackRate = state.replayVideo?.playbackRate || 1;
       state.compareVideoB.playbackRate = state.replayVideo?.playbackRate || 1;
-      state.compareVideoA.pause();
-      state.compareVideoB.pause();
+      compareReady = true;
       return true;
     } catch (error) {
       state.lastError = String(error?.message || error);
-      console.error('[TRA] Compare prepare failed', error);
       return false;
-    }
+    } finally { comparePreparing = false; }
   };
 
   window.traWebEngineComparePlay = async function() {
+    if (!compareReady) { state.lastError = '請先建立前後對比，再按播放。'; return false; }
+    state.lastError = '';
     try {
       await Promise.all([state.compareVideoA.play(), state.compareVideoB.play()]);
       return true;
-    } catch (_) { return false; }
+    } catch (error) {
+      state.compareVideoA.pause(); state.compareVideoB.pause();
+      state.lastError = '對比播放未完成，請再按一次播放。';
+      return false;
+    }
   };
 
   window.traWebEngineComparePause = function() {
@@ -529,9 +575,9 @@
   };
 
   window.traWebEngineCompareSeek = function(beforeSeconds, afterSeconds) {
-    const start = state.bufferStart;
-    if (state.compareVideoA) state.compareVideoA.currentTime = Math.max(0, Number(beforeSeconds) - start);
-    if (state.compareVideoB) state.compareVideoB.currentTime = Math.max(0, Number(afterSeconds) - start);
+    if (!compareReady) return false;
+    if (state.compareVideoA) state.compareVideoA.currentTime = Math.max(0, Number(beforeSeconds));
+    if (state.compareVideoB) state.compareVideoB.currentTime = Math.max(0, Number(afterSeconds));
     return true;
   };
 
@@ -615,7 +661,7 @@
       // empty gap after initChunk and produced invalid/blank MP4 files.
       const rangeStart = Math.max(0, start);
       const rangeEnd = Math.max(rangeStart, end);
-      const targetPortrait = state.portrait !== (state.rotationQuarterTurns % 2 === 1);
+      const targetPortrait = state.canvas.height > state.canvas.width;
 
       const ok = await window.sportReplayExportMp4Blobs(
         [combined],
@@ -623,8 +669,8 @@
         rangeStart,
         rangeEnd,
         targetPortrait,
-        state.rotationQuarterTurns,
-        state.mirror,
+        0, // Rotation is already baked into the recorded canvas.
+        false, // Mirroring is already baked into the recorded canvas.
       );
 
       if (!ok) {
