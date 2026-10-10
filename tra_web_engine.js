@@ -380,17 +380,32 @@
     }
   };
 
+  let selectingCamera = false;
   window.traWebEngineSelectCamera = async function(deviceId) {
+    if (selectingCamera) return false;
+    selectingCamera = true;
+    const previousDeviceId = state.selectedDeviceId;
     try {
-      state.selectedDeviceId = String(deviceId || '');
+      const selected = String(deviceId || '');
+      if (!selected) throw new Error('找不到所選鏡頭，請重新選擇。');
+      state.selectedDeviceId = selected;
       await stopCamera();
       await startCamera();
       return true;
     } catch (error) {
-      state.lastError = String(error?.message || error);
+      const messages = {
+        NotAllowedError: '未獲相機權限，請在瀏覽器設定允許使用相機。',
+        NotFoundError: '找不到所選鏡頭，請確認裝置已連接。',
+        NotReadableError: '鏡頭暫時無法使用，請關閉其他使用相機的程式再試。',
+        OverconstrainedError: '所選鏡頭已無法使用，請重新選擇鏡頭。'
+      };
+      const message = messages[error?.name] || '無法切換鏡頭，請重新選擇或檢查裝置。';
+      state.selectedDeviceId = previousDeviceId;
+      try { await stopCamera(); await startCamera(); } catch (_) { await stopCamera(); }
+      state.lastError = message;
       console.error('[TRA] Select camera failed', error);
       return false;
-    }
+    } finally { selectingCamera = false; }
   };
 
   window.traWebEngineActualFps = function() {
@@ -438,6 +453,7 @@
   window.traWebEngineIsPlaying = function() { return Boolean(state.replayVideo && !state.replayVideo.paused); };
   window.traWebEngineIsRecording = function() { return state.recorder?.state === 'recording'; };
   window.traWebEngineLastError = function() { return state.lastError || ''; };
+  window.traWebEngineClearError = function() { state.lastError = ''; };
   window.traWebEnginePortrait = function() { return state.portrait; };
 
 
