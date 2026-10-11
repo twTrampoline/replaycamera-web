@@ -1,6 +1,0 @@
-// Retire the former offline application cache when browsers check for updates.
-self.addEventListener('install',()=>self.skipWaiting());
-self.addEventListener('activate',event=>event.waitUntil((async()=>{
-  await Promise.all(['flutter-app-cache','flutter-temp-cache','flutter-app-manifest'].map(name=>caches.delete(name)));
-  await self.registration.unregister();
-})()));

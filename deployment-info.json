@@ -1,1 +1,1 @@
-{"source_commit": "02bb6d9", "features": ["firebase-email-password-login", "server-side-signup-disabled", "session-only-login", "logout"], "login_gate_tests": "passed", "live_account_login": "awaiting-owner-test"}
+{"source_commit": "fe2ef8a", "features": ["firebase-email-password-login", "server-side-signup-disabled", "session-only-login", "logout", "official-cttda-logo"], "login_gate_tests": "passed", "live_account_login": "confirmed-by-owner"}

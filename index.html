@@ -52,13 +52,13 @@
   html,body{margin:0;background:#101010;color:#f4f0e5;font-family:system-ui,sans-serif}*{box-sizing:border-box}
   #login-screen{min-height:100dvh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at top,#342d1a,#101010 65%)}
   #login-form{width:min(100%,420px);border:1px solid #756132;border-radius:24px;padding:36px;background:#191919;box-shadow:0 20px 80px #0008}
-  .brand{color:#d9bd70;letter-spacing:.12em;font-size:13px}h1{font-size:28px;margin:12px 0}p{color:#bbb6a8;line-height:1.6}
+  .login-logo{display:block;width:96px;height:96px;object-fit:contain;background:#020202;border-radius:12px;padding:0;margin:0 auto 24px}.brand{color:#d9bd70;letter-spacing:.12em;font-size:13px}h1{font-size:28px;margin:12px 0}p{color:#bbb6a8;line-height:1.6}
   label{display:block;margin:22px 0 8px}input{width:100%;padding:14px;border:1px solid #756132;border-radius:10px;background:#101010;color:#fff;font:inherit}input:focus{outline:2px solid #d9bd70;outline-offset:2px}
   button{font:inherit;cursor:pointer;border:0;border-radius:10px;background:#d9bd70;color:#17130a;padding:14px;font-weight:700}#login-form button{width:100%;margin-top:24px}button:disabled{opacity:.6;cursor:wait}#login-status{min-height:48px;font-size:14px;margin-bottom:0}
   #replay-signout{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:8px 14px;font-size:13px;box-shadow:0 2px 10px #0008}
   </style>
   <main id="login-screen"><form id="login-form">
-    <div class="brand">TRA SPORT REPLAY</div><h1>回放系統登入</h1><p>僅限協會批准嘅帳戶使用</p>
+    <img class="login-logo" src="cttda-logo.svg" alt="CTTDA" width="96" height="96"><div class="brand">TRA SPORT REPLAY</div><h1>回放系統登入</h1><p>僅限協會批准嘅帳戶使用</p>
     <label for="email">電郵帳戶</label><input id="email" name="email" type="email" autocomplete="username" required>
     <label for="password">密碼</label><input id="password" name="password" type="password" autocomplete="current-password" required>
     <button type="submit" disabled>登入</button><p id="login-status" role="status" aria-live="polite">正在連接登入服務…</p>

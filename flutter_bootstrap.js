@@ -35,4 +35,5 @@ if (!window._flutter) {
 }
 _flutter.buildConfig = {"engineRevision":"83675ed27633283e7fc296c8bca22e841224c096","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"},{}]};
 
+// Do not cache an authenticated application entry point for offline access.
 _flutter.loader.load();
