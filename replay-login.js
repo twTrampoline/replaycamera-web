@@ -11,7 +11,7 @@ async function start(user){
   started=true;
   status.textContent='正在載入回放系統…';
   await script('webcodecs_export.js?v=09603bf',true);
-  await script('tra_web_engine.js?v=cameras-20261014');
+  await script('tra_web_engine.js?v=camera-swap-20261014');
   await script('flutter_bootstrap.js');
   document.querySelector('#login-screen').remove();
   const exit=document.createElement('button');exit.id='replay-signout';exit.textContent='登出';exit.title='登出回放系統';exit.onclick=async()=>{await signOut(auth);location.reload();};document.body.append(exit);

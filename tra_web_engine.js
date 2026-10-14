@@ -436,33 +436,72 @@
     }
   };
 
+  function cameraDeadline(promise, onLateValue) {
+    return new Promise((resolve, reject) => {
+      let expired = false;
+      const timer = setTimeout(() => {
+        expired = true;
+        reject(new Error('鏡頭回應逾時，原有鏡頭會繼續運作，請重試。'));
+      }, 15000);
+      Promise.resolve(promise).then(value => {
+        clearTimeout(timer);
+        if (expired) { onLateValue?.(value); return; }
+        resolve(value);
+      }, error => { clearTimeout(timer); if (!expired) reject(error); });
+    });
+  }
+
   let selectingCamera = false;
   window.traWebEngineSelectCamera = async function(deviceId) {
     if (selectingCamera) return false;
     selectingCamera = true;
-    const previousDeviceId = state.selectedDeviceId;
+    let nextStream = null;
+    let nextVideo = null;
     try {
       const selected = String(deviceId || '');
       if (!selected) throw new Error('找不到所選鏡頭，請重新選擇。');
       if (selected === state.sourceStream?.getVideoTracks()[0]?.getSettings().deviceId) return true;
+      state.lastError = '';
+      // Prepare the new camera before touching the working stream. The canvas,
+      // recorder and replay MediaSource remain mounted and keep their buffers.
+      nextStream = await cameraDeadline(navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { deviceId: { exact: selected }, width: { ideal: 1280 },
+          height: { ideal: 720 }, frameRate: { ideal: 60, max: 60 } },
+      }), stream => stream.getTracks().forEach(track => track.stop()));
+      nextVideo = document.createElement('video');
+      nextVideo.muted = true;
+      nextVideo.playsInline = true;
+      nextVideo.style.display = 'none';
+      document.body.appendChild(nextVideo);
+      nextVideo.srcObject = nextStream;
+      await cameraDeadline(nextVideo.play());
+      if (!nextVideo.videoWidth) throw new Error('新鏡頭尚未提供畫面，請重試。');
+      const oldStream = state.sourceStream;
+      const oldVideo = state.sourceVideo;
+      state.sourceStream = nextStream;
+      state.sourceVideo = nextVideo;
       state.selectedDeviceId = selected;
-      await stopCamera();
-      await startCamera();
+      nextStream = null;
+      nextVideo = null;
+      oldVideo?.pause();
+      if (oldVideo) { oldVideo.srcObject = null; oldVideo.remove(); }
+      oldStream?.getTracks().forEach(track => track.stop());
       return true;
     } catch (error) {
       const messages = {
         NotAllowedError: '未獲相機權限，請在瀏覽器設定允許使用相機。',
         NotFoundError: '找不到所選鏡頭，請確認裝置已連接。',
-        NotReadableError: '鏡頭暫時無法使用，請關閉其他使用相機的程式再試。',
+        NotReadableError: '新鏡頭暫時無法使用，請關閉其他使用該鏡頭的程式再試。',
         OverconstrainedError: '所選鏡頭已無法使用，請重新選擇鏡頭。'
       };
-      const message = messages[error?.name] || '無法切換鏡頭，請重新選擇或檢查裝置。';
-      state.selectedDeviceId = previousDeviceId;
-      try { await stopCamera(); await startCamera(); } catch (_) { await stopCamera(); }
-      state.lastError = message;
-      console.error('[TRA] Select camera failed', error);
+      state.lastError = messages[error?.name] || error?.message || '無法切換鏡頭，請重新選擇。';
       return false;
-    } finally { selectingCamera = false; }
+    } finally {
+      nextStream?.getTracks().forEach(track => track.stop());
+      if (nextVideo) { nextVideo.pause(); nextVideo.srcObject = null; nextVideo.remove(); }
+      selectingCamera = false;
+    }
   };
 
   window.traWebEngineActualFps = function() {

@@ -1,5 +1,5 @@
 {
-  "source_commit": "bedd82f",
+  "source_commit": "c92b1be",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -9,10 +9,12 @@
     "transparent-cttda-logo",
     "rolling-replay-buffer-fix",
     "byte-limited-buffer-and-quota-retry",
-    "visible-camera-picker-active-device-refresh"
+    "visible-camera-picker-active-device-refresh",
+    "camera-stream-swap-preserves-recording"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
   "replay_buffer_test": "671-second high-motion recording, concurrent playback advanced 10.54 seconds, no pending chunks or errors",
-  "camera_picker_tests": "widget selection/fullscreen/refresh/current-device and JS device enumeration passed"
+  "camera_picker_tests": "widget selection/fullscreen/refresh/current-device and JS device enumeration passed",
+  "camera_swap_tests": "browser synthetic streams retained recorder and MSE; replay advanced 3s; failure and timeout unit tests passed"
 }
