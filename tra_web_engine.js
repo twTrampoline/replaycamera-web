@@ -421,10 +421,12 @@
     try {
       // Device labels are normally available after camera permission is granted.
       const devices = await navigator.mediaDevices.enumerateDevices();
+      const activeId = state.sourceStream?.getVideoTracks()[0]?.getSettings().deviceId;
       const cameras = devices
         .filter((device) => device.kind === 'videoinput')
         .map((device, index) => ({
           deviceId: device.deviceId,
+          active: device.deviceId === activeId,
           label: device.label || `相機 ${index + 1}`,
         }));
       return JSON.stringify(cameras);
@@ -442,6 +444,7 @@
     try {
       const selected = String(deviceId || '');
       if (!selected) throw new Error('找不到所選鏡頭，請重新選擇。');
+      if (selected === state.sourceStream?.getVideoTracks()[0]?.getSettings().deviceId) return true;
       state.selectedDeviceId = selected;
       await stopCamera();
       await startCamera();
