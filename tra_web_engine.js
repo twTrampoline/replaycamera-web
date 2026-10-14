@@ -22,6 +22,8 @@
     mediaSource: null,
     sourceBuffer: null,
     appendQueue: [],
+    appendBusy: false,
+    replayGeneration: 0,
     replayVideo: null,
     compareVideoA: null,
     compareVideoB: null,
@@ -162,6 +164,8 @@
     if (state.replayVideo?.src) {
       try { URL.revokeObjectURL(state.replayVideo.src); } catch (_) {}
     }
+    const generation = ++state.replayGeneration;
+    state.appendBusy = false;
     const mediaSource = new MediaSource();
     state.mediaSource = mediaSource;
     state.sourceBuffer = null;
@@ -171,10 +175,15 @@
     state.replayVideo.src = URL.createObjectURL(mediaSource);
 
     mediaSource.addEventListener('sourceopen', () => {
+      if (generation !== state.replayGeneration) return;
       try {
         const sourceBuffer = mediaSource.addSourceBuffer(state.mimeType);
-        sourceBuffer.mode = 'sequence';
-        sourceBuffer.addEventListener('updateend', drainAppendQueue);
+        sourceBuffer.mode = 'segments';
+        sourceBuffer.addEventListener('updateend', () => {
+          if (generation !== state.replayGeneration) return;
+          trimChunkMemory();
+          drainAppendQueue();
+        });
         sourceBuffer.addEventListener('error', (event) => {
           console.error('[TRA] SourceBuffer error', event);
         });
@@ -198,13 +207,35 @@
 
   async function drainAppendQueue() {
     const sb = state.sourceBuffer;
-    if (!sb || sb.updating || state.appendQueue.length === 0) return;
-    const blob = state.appendQueue.shift();
+    if (!sb || sb.updating || state.appendBusy || state.appendQueue.length === 0) return;
+    const generation = state.replayGeneration;
+    const blob = state.appendQueue[0];
+    state.appendBusy = true;
+    let retry = false;
     try {
-      sb.appendBuffer(await blobBytes(blob));
+      const bytes = await blobBytes(blob);
+      if (generation !== state.replayGeneration || sb !== state.sourceBuffer) return;
+      // Keep the head until appendBuffer accepts it. Blob conversion is async,
+      // so a second recorder event must not overtake the first segment.
+      if (sb.updating) { retry = true; return; }
+      sb.appendBuffer(bytes);
+      state.appendQueue.shift();
     } catch (error) {
+      if (generation !== state.replayGeneration) return;
       console.warn('[TRA] appendBuffer failed', error);
-      setTimeout(drainAppendQueue, 100);
+      if (error.name === 'QuotaExceededError') {
+        state.appendBusy = false;
+        trimChunkMemory();
+        retry = sb.updating;
+      } else if (error.name === 'InvalidStateError' && state.mediaSource?.readyState === 'open') {
+        retry = true;
+      }
+      if (!retry) state.lastError = '回放緩衝無法更新，請重新啟動相機。';
+    } finally {
+      if (generation === state.replayGeneration) {
+        state.appendBusy = false;
+        if (retry) setTimeout(drainAppendQueue, 100);
+      }
     }
   }
 
@@ -216,9 +247,10 @@
     state.bufferStart = state.chunks.length ? state.chunks[0].start : 0;
 
     const sb = state.sourceBuffer;
-    if (sb && !sb.updating && sb.buffered.length > 0) {
+    if (sb && !sb.updating && !state.appendBusy && sb.buffered.length > 0) {
       const bufferedStart = sb.buffered.start(0);
-      const removeUntil = Math.min(cutoff, state.replayVideo.currentTime - 2);
+      const removeUntil = cutoff;
+      if (state.replayVideo.currentTime < cutoff) state.replayVideo.currentTime = cutoff;
       if (removeUntil > bufferedStart + 1) {
         try { sb.remove(bufferedStart, removeUntil); } catch (_) {}
       }
@@ -420,7 +452,11 @@
     if (!video) return false;
     const start = window.traWebEngineBufferStart();
     const end = window.traWebEngineBufferEnd();
-    video.currentTime = Math.max(start, end - 10);
+    if (end <= start) {
+      state.lastError = '請先等候幾秒建立回放緩衝。';
+      return false;
+    }
+    video.currentTime = start;
     try { await video.play(); } catch (_) {}
     return true;
   };
@@ -441,7 +477,7 @@
   };
   window.traWebEngineBufferStart = function() {
     const video = state.replayVideo;
-    if (video?.buffered?.length) return video.buffered.start(0);
+    if (video?.buffered?.length) return Math.max(video.buffered.start(0), state.bufferEnd - MAX_BUFFER_SECONDS);
     return state.bufferStart;
   };
   window.traWebEngineBufferEnd = function() {

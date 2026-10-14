@@ -1,1 +1,15 @@
-{"source_commit": "5f2002a", "features": ["firebase-email-password-login", "server-side-signup-disabled", "session-only-login", "logout", "official-cttda-logo", "transparent-cttda-logo"], "login_gate_tests": "passed", "live_account_login": "confirmed-by-owner"}
+{
+  "source_commit": "0b8c724",
+  "features": [
+    "firebase-email-password-login",
+    "server-side-signup-disabled",
+    "session-only-login",
+    "logout",
+    "official-cttda-logo",
+    "transparent-cttda-logo",
+    "rolling-replay-buffer-fix"
+  ],
+  "login_gate_tests": "passed",
+  "live_account_login": "confirmed-by-owner",
+  "replay_buffer_test": "215-second recording, 12-second playback passed"
+}
