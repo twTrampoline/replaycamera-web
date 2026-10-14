@@ -72,6 +72,7 @@
     if (!state.replayVideo) {
       const video = document.createElement('video');
       video.id = 'tra-replay-video';
+      video.muted = true;
       video.playsInline = true;
       video.controls = false;
       video.preload = 'auto';
@@ -512,17 +513,34 @@
   };
 
   window.traWebEngineOpenReplay = async function() {
+    state.lastError = '';
     const video = state.replayVideo;
     if (!video) return false;
-    const start = window.traWebEngineBufferStart();
-    const end = window.traWebEngineBufferEnd();
-    if (end <= start) {
-      state.lastError = '請先等候幾秒建立回放緩衝。';
+    try {
+      await flushRecorderForExport();
+      // Wait for actual playable frames, not merely recorder wall-clock time.
+      for (let attempt = 0; attempt < 30 && !video.buffered?.length; attempt++) {
+        if (video.error) throw new Error('回放影片載入失敗，請重新開啟頁面。');
+        await sleep(100);
+      }
+      const start = window.traWebEngineBufferStart();
+      const end = window.traWebEngineBufferEnd();
+      if (!video.buffered?.length || end <= start) {
+        throw new Error('請先等候幾秒建立回放緩衝，再按回放。');
+      }
+      video.currentTime = start;
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('回放播放逾時，請再按一次播放。')), 5000);
+        Promise.resolve(video.play()).then(
+          () => { clearTimeout(timer); resolve(); },
+          error => { clearTimeout(timer); reject(error); },
+        );
+      });
+      return true;
+    } catch (error) {
+      state.lastError = error?.message || '無法播放回放，請再試一次。';
       return false;
     }
-    video.currentTime = start;
-    try { await video.play(); } catch (_) {}
-    return true;
   };
 
   window.traWebEnginePlay = async function() {

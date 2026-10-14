@@ -1,5 +1,5 @@
 {
-  "source_commit": "c92b1be",
+  "source_commit": "239c489",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -10,11 +10,13 @@
     "rolling-replay-buffer-fix",
     "byte-limited-buffer-and-quota-retry",
     "visible-camera-picker-active-device-refresh",
-    "camera-stream-swap-preserves-recording"
+    "camera-stream-swap-preserves-recording",
+    "stable-replay-view-loading-fullscreen"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
   "replay_buffer_test": "671-second high-motion recording, concurrent playback advanced 10.54 seconds, no pending chunks or errors",
   "camera_picker_tests": "widget selection/fullscreen/refresh/current-device and JS device enumeration passed",
-  "camera_swap_tests": "browser synthetic streams retained recorder and MSE; replay advanced 3s; failure and timeout unit tests passed"
+  "camera_swap_tests": "browser synthetic streams retained recorder and MSE; replay advanced 3s; failure and timeout unit tests passed",
+  "replay_ui_test": "Full Flutter UI with synthetic cameras: camera B selection, replay, fullscreen, return to live, reopen replay and seek to camera B passed"
 }
