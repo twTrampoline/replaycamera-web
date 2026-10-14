@@ -1,6 +1,7 @@
 (() => {
   const MAX_BUFFER_SECONDS = 180;
   const TIMESLICE_MS = 1000;
+  const MAX_BUFFER_BYTES = 48 * 1024 * 1024;
 
   const state = {
     sourceStream: null,
@@ -28,6 +29,7 @@
     compareVideoA: null,
     compareVideoB: null,
     compareBlobUrl: '',
+    retentionStart: 0,
     bufferStart: 0,
     bufferEnd: 0,
     lastError: '',
@@ -170,6 +172,7 @@
     state.mediaSource = mediaSource;
     state.sourceBuffer = null;
     state.appendQueue = [];
+    state.retentionStart = 0;
     state.bufferStart = 0;
     state.bufferEnd = 0;
     state.replayVideo.src = URL.createObjectURL(mediaSource);
@@ -225,6 +228,15 @@
       console.warn('[TRA] appendBuffer failed', error);
       if (error.name === 'QuotaExceededError') {
         state.appendBusy = false;
+        // Browser MSE quotas can be smaller than our time-based window.
+        // Free a small oldest portion and retry the SAME chunk, without
+        // restarting the camera or discarding the remaining recording.
+        if (sb.buffered.length) {
+          const oldest = sb.buffered.start(0);
+          const newest = sb.buffered.end(sb.buffered.length - 1);
+          state.retentionStart = Math.max(state.retentionStart,
+            Math.min(oldest + 10, newest - 10));
+        }
         trimChunkMemory();
         retry = sb.updating;
       } else if (error.name === 'InvalidStateError' && state.mediaSource?.readyState === 'open') {
@@ -240,7 +252,17 @@
   }
 
   function trimChunkMemory() {
-    const cutoff = Math.max(0, state.bufferEnd - MAX_BUFFER_SECONDS);
+    let retainedBytes = state.chunks.reduce((sum, item) => sum + (item.blob?.size || 0), 0);
+    let cutoff = Math.max(state.retentionStart, 0, state.bufferEnd - MAX_BUFFER_SECONDS);
+    // Limit encoded bytes too: a busy 60fps scene can exceed the browser's
+    // memory quota well before the three-minute time limit.
+    while (state.chunks.length > 1 &&
+        (state.chunks[0].end < cutoff || retainedBytes > MAX_BUFFER_BYTES)) {
+      const removed = state.chunks.shift();
+      retainedBytes -= removed.blob?.size || 0;
+      cutoff = Math.max(cutoff, removed.end);
+    }
+    state.retentionStart = cutoff;
     while (state.chunks.length > 1 && state.chunks[0].end < cutoff) {
       state.chunks.shift();
     }
@@ -477,7 +499,7 @@
   };
   window.traWebEngineBufferStart = function() {
     const video = state.replayVideo;
-    if (video?.buffered?.length) return Math.max(video.buffered.start(0), state.bufferEnd - MAX_BUFFER_SECONDS);
+    if (video?.buffered?.length) return Math.max(video.buffered.start(0), state.retentionStart, state.bufferEnd - MAX_BUFFER_SECONDS);
     return state.bufferStart;
   };
   window.traWebEngineBufferEnd = function() {

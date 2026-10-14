@@ -1,5 +1,5 @@
 {
-  "source_commit": "0b8c724",
+  "source_commit": "9f5730e",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -7,9 +7,10 @@
     "logout",
     "official-cttda-logo",
     "transparent-cttda-logo",
-    "rolling-replay-buffer-fix"
+    "rolling-replay-buffer-fix",
+    "byte-limited-buffer-and-quota-retry"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
-  "replay_buffer_test": "215-second recording, 12-second playback passed"
+  "replay_buffer_test": "671-second high-motion recording, concurrent playback advanced 10.54 seconds, no pending chunks or errors"
 }
