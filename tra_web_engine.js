@@ -33,17 +33,27 @@
     bufferStart: 0,
     bufferEnd: 0,
     lastError: '',
+    recordingError: '',
   };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+  function mediaSourceConstructor() {
+    if (typeof MediaSource !== 'undefined') return MediaSource;
+    if (typeof ManagedMediaSource !== 'undefined') return ManagedMediaSource;
+    throw new Error('此瀏覽器不支援即時回放，請用更新版本的 Safari 或電腦 Chrome 開啟。');
+  }
+
   function chooseMimeType() {
-    const choices = [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ];
-    return choices.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+    const Source = mediaSourceConstructor();
+    const webm = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    const mp4 = ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4'];
+    const managed = typeof ManagedMediaSource !== 'undefined' && Source === ManagedMediaSource;
+    const choices = managed ? [...mp4, ...webm] : [...webm, ...mp4];
+    // Recording support alone is insufficient: the replay decoder must accept
+    // exactly the same container and codec.
+    return choices.find(type => MediaRecorder.isTypeSupported(type) &&
+      Source.isTypeSupported(type)) || '';
   }
 
   function ensureElements() {
@@ -53,6 +63,7 @@
       video.autoplay = true;
       video.muted = true;
       video.playsInline = true;
+      video.disableRemotePlayback = true;
       video.style.display = 'none';
       document.body.appendChild(video);
       state.sourceVideo = video;
@@ -74,6 +85,7 @@
       video.id = 'tra-replay-video';
       video.muted = true;
       video.playsInline = true;
+      video.disableRemotePlayback = true;
       video.controls = false;
       video.preload = 'auto';
       video.style.width = '100%';
@@ -87,6 +99,7 @@
       const video = document.createElement('video');
       video.id = 'tra-compare-video-a';
       video.playsInline = true;
+      video.disableRemotePlayback = true;
       video.controls = false;
       video.preload = 'auto';
       video.muted = true;
@@ -101,6 +114,7 @@
       const video = document.createElement('video');
       video.id = 'tra-compare-video-b';
       video.playsInline = true;
+      video.disableRemotePlayback = true;
       video.controls = false;
       video.preload = 'auto';
       video.muted = true;
@@ -169,13 +183,15 @@
     }
     const generation = ++state.replayGeneration;
     state.appendBusy = false;
-    const mediaSource = new MediaSource();
+    const Source = mediaSourceConstructor();
+    const mediaSource = new Source();
     state.mediaSource = mediaSource;
     state.sourceBuffer = null;
     state.appendQueue = [];
     state.retentionStart = 0;
     state.bufferStart = 0;
     state.bufferEnd = 0;
+    state.replayVideo.disableRemotePlayback = true;
     state.replayVideo.src = URL.createObjectURL(mediaSource);
 
     mediaSource.addEventListener('sourceopen', () => {
@@ -189,15 +205,19 @@
           drainAppendQueue();
         });
         sourceBuffer.addEventListener('error', (event) => {
+          state.recordingError = '錄影片段無法解碼，請改用更新版本的 Safari 或電腦 Chrome。';
+          state.lastError = state.recordingError;
           console.error('[TRA] SourceBuffer error', event);
         });
         state.sourceBuffer = sourceBuffer;
         drainAppendQueue();
       } catch (error) {
-        state.lastError = `MediaSource 初始化失敗：${error}`;
+        state.recordingError = `回放初始化失敗：${error}`;
+        state.lastError = state.recordingError;
         console.error('[TRA]', state.lastError);
       }
     }, { once: true });
+    state.replayVideo.load?.();
   }
 
   async function blobBytes(blob) {
@@ -282,7 +302,8 @@
 
   function startRecorder() {
     state.mimeType = chooseMimeType();
-    if (!state.mimeType) throw new Error('瀏覽器不支援 WebM MediaRecorder');
+    if (!state.mimeType) throw new Error('此瀏覽器沒有可同時錄影及回放的格式，請用更新版本的 Safari 或電腦 Chrome。');
+    state.recordingError = '';
 
     state.outputStream = state.canvas.captureStream(60);
     state.recorder = new MediaRecorder(state.outputStream, {
@@ -309,7 +330,8 @@
     });
 
     state.recorder.addEventListener('error', (event) => {
-      state.lastError = `錄影器錯誤：${event.error || event}`;
+      state.recordingError = `錄影器錯誤：${event.error || event}`;
+      state.lastError = state.recordingError;
       console.error('[TRA]', state.lastError);
     });
 
@@ -383,6 +405,7 @@
       return true;
     } catch (error) {
       state.lastError = String(error?.message || error);
+      state.recordingError = state.lastError;
       console.error('[TRA] Web engine init failed', error);
       return false;
     }
@@ -517,6 +540,7 @@
     const video = state.replayVideo;
     if (!video) return false;
     try {
+      if (state.recordingError) throw new Error(state.recordingError);
       await flushRecorderForExport();
       // Wait for actual playable frames, not merely recorder wall-clock time.
       for (let attempt = 0; attempt < 30 && !video.buffered?.length; attempt++) {
@@ -600,7 +624,9 @@
   let comparePreparing = false;
   let compareUrls = [];
   async function loadCompareSnapshot(video, blobs, position) {
-    const source = new MediaSource();
+    const Source = mediaSourceConstructor();
+    const source = new Source();
+    video.disableRemotePlayback = true;
     const url = URL.createObjectURL(source);
     compareUrls.push(url);
     await new Promise((resolve, reject) => {
