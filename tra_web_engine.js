@@ -359,6 +359,32 @@
     if (state.sourceVideo) state.sourceVideo.srcObject = null;
   }
 
+  async function enableContinuousFocus(track) {
+    try {
+      if (!track || track.readyState === 'ended') return false;
+      const modes = track.getCapabilities?.().focusMode;
+      // Some browsers leave focus entirely to the camera. Do not send an
+      // unsupported constraint or replace the stream just to request focus.
+      if (!Array.isArray(modes) || !modes.includes('continuous')) return false;
+      const previous = track.getConstraints?.() || {};
+      const constraints = { ...previous, focusMode: 'continuous' };
+      delete constraints.focusDistance;
+      if (previous.advanced) {
+        constraints.advanced = previous.advanced.map(value => {
+          const next = { ...value };
+          delete next.focusMode;
+          delete next.focusDistance;
+          return next;
+        }).filter(value => Object.keys(value).length);
+      }
+      await track.applyConstraints(constraints);
+      return true;
+    } catch (_) {
+      // Autofocus is best-effort; a driver rejection must not stop recording.
+      return false;
+    }
+  }
+
   async function startCamera() {
     ensureElements();
     resizeCanvas();
@@ -394,6 +420,7 @@
 
     renderLoop();
     startRecorder();
+    void enableContinuousFocus(videoTrack);
   }
 
   window.traWebEngineInit = async function(portrait, mirror) {
@@ -511,6 +538,7 @@
       oldVideo?.pause();
       if (oldVideo) { oldVideo.srcObject = null; oldVideo.remove(); }
       oldStream?.getTracks().forEach(track => track.stop());
+      void enableContinuousFocus(state.sourceStream.getVideoTracks()[0]);
       return true;
     } catch (error) {
       const messages = {
