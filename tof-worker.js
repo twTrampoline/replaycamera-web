@@ -18,8 +18,11 @@ self.onmessage=async({data})=>{
       const people=result.landmarks;
       const feet=people.length===1?[27,28,29,30,31,32].map(i=>people[0][i]):[];
       const valid=feet.length&&feet.every(p=>(p.visibility??0)>0.6&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1);
-      self.postMessage({type:'sample',time:data.time,y:valid?Math.max(...feet.map(p=>p.y)):null,
-        message:people.length>1?'畫面有多個人，請只保留一位運動員':valid?'追蹤中':'請確保全身及雙腳清晰入鏡'});
+      const hips=people.length===1?[people[0][23],people[0][24]]:[];
+      const hipsValid=hips.length&&hips.every(p=>(p.visibility??0)>0.6);
+      const usable=valid&&hipsValid;
+      self.postMessage({type:'sample',time:data.time,revision:data.revision,ambiguous:people.length>1,y:usable?Math.max(...feet.map(p=>p.y)):null,bodyY:usable?(hips[0].y+hips[1].y)/2:null,
+        message:people.length>1?'選取範圍內有多個人，請重新框選運動員':usable?'追蹤中':'請確保全身及雙腳清晰入鏡'});
     }catch(e){self.postMessage({type:'error',message:'此裝置無法執行即時人體分析。錄影不受影響。'});}
     finally{data.bitmap.close();}
   }

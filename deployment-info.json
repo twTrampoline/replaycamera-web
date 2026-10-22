@@ -1,5 +1,5 @@
 {
-  "source_commit": "17a12fc",
+  "source_commit": "bdea63a",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -15,7 +15,9 @@
     "iphone-managed-media-source-and-mp4-negotiation",
     "capability-aware-continuous-autofocus",
     "three-minute-replay-bitrate-budget",
-    "opt-in-local-worker-ten-jump-flight-estimation"
+    "opt-in-local-worker-ten-jump-flight-estimation",
+    "athlete-region-selection",
+    "ten-jump-ascent-air-descent-table"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -27,5 +29,6 @@
   "autofocus_tests": "Supported/unsupported cameras, preserved constraints and driver failures passed; optical focus not verified on physical iPhone",
   "tof_tests": "Counter regression tests (10 jumps, interpolation, below-line exclusion, interruption, reset) and real worker/model loading passed; actual athletic accuracy not validated",
   "current_validation": "All eight JS regression suites and three Flutter tests passed; release build passed",
-  "three_minute_test": "Synthetic recording observed healthy through 107 seconds; browser automation subsequently became unresponsive, full 180-second retention not verified"
+  "three_minute_test": "Synthetic recording observed healthy through 107 seconds; browser automation subsequently became unresponsive, full 180-second retention not verified",
+  "tof_phase_tests": "Phase sum and hip apex, multiple-person rejection, occluded hip and cache/login tests passed; browser table and drag selection verified; actual athletic accuracy not validated"
 }
