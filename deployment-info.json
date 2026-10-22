@@ -1,5 +1,5 @@
 {
-  "source_commit": "5e32bf9",
+  "source_commit": "17a12fc",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -13,7 +13,9 @@
     "camera-stream-swap-preserves-recording",
     "stable-replay-view-loading-fullscreen",
     "iphone-managed-media-source-and-mp4-negotiation",
-    "capability-aware-continuous-autofocus"
+    "capability-aware-continuous-autofocus",
+    "three-minute-replay-bitrate-budget",
+    "opt-in-local-worker-ten-jump-flight-estimation"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -22,5 +24,8 @@
   "camera_swap_tests": "browser synthetic streams retained recorder and MSE; replay advanced 3s; failure and timeout unit tests passed",
   "replay_ui_test": "Full Flutter UI with synthetic cameras: camera B selection, replay, fullscreen, return to live, reopen replay and seek to camera B passed",
   "ios_compatibility_tests": "Capability mocks passed; physical iPhone and ChatGPT in-app browser not yet verified",
-  "autofocus_tests": "Supported/unsupported cameras, preserved constraints and driver failures passed; optical focus not verified on physical iPhone"
+  "autofocus_tests": "Supported/unsupported cameras, preserved constraints and driver failures passed; optical focus not verified on physical iPhone",
+  "tof_tests": "Counter regression tests (10 jumps, interpolation, below-line exclusion, interruption, reset) and real worker/model loading passed; actual athletic accuracy not validated",
+  "current_validation": "All eight JS regression suites and three Flutter tests passed; release build passed",
+  "three_minute_test": "Synthetic recording observed healthy through 107 seconds; browser automation subsequently became unresponsive, full 180-second retention not verified"
 }

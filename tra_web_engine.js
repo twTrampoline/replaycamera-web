@@ -308,7 +308,7 @@
     state.outputStream = state.canvas.captureStream(60);
     state.recorder = new MediaRecorder(state.outputStream, {
       mimeType: state.mimeType,
-      videoBitsPerSecond: 8_000_000,
+      videoBitsPerSecond: 1_800_000,
     });
     state.startedAt = performance.now();
     state.chunks = [];
@@ -424,6 +424,7 @@
   }
 
   window.traWebEngineInit = async function(portrait, mirror) {
+    window.traTofInvalidate?.();
     try {
       await stopCamera();
       state.portrait = Boolean(portrait);
@@ -439,6 +440,7 @@
   };
 
   window.traWebEngineSetLayout = async function(portrait) {
+    window.traTofInvalidate?.();
     state.portrait = Boolean(portrait);
     try {
       await stopRecorder();
@@ -452,12 +454,14 @@
   };
 
   window.traWebEngineSetRotation = function(quarterTurns) {
+    window.traTofInvalidate?.();
     state.rotationQuarterTurns = ((Number(quarterTurns) || 0) % 4 + 4) % 4;
     resizeCanvas();
     return true;
   };
 
   window.traWebEngineSetMirror = function(mirror) {
+    window.traTofInvalidate?.();
     state.mirror = Boolean(mirror);
     return true;
   };
@@ -532,6 +536,7 @@
       const oldVideo = state.sourceVideo;
       state.sourceStream = nextStream;
       state.sourceVideo = nextVideo;
+      window.traTofInvalidate?.();
       state.selectedDeviceId = selected;
       nextStream = null;
       nextVideo = null;
