@@ -7,7 +7,7 @@
     sample(t,y,bodyY=y){
       if(!['ground','ready','air'].includes(this.phase)||!Number.isFinite(t)||t<=this.lastInput)return;
       this.lastInput=t;
-      if(!Number.isFinite(y)||y<0||y>1){this.previous=null;this.notice='未能確認腳部位置：不補算時間，保留已記錄動作';if(this.phase==='air')this.uncertain=true;return;}
+      if(!Number.isFinite(y)||y<0||y>1){this.previous=null;this.notice='未能確認人物框底邊：不補算時間，保留已記錄動作';if(this.phase==='air')this.uncertain=true;return;}
       let p=this.previous;
       const gap=this.lastSeen!==null?t-this.lastSeen:0;
       this.lastSeen=t;this.previous={t,y};

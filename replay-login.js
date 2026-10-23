@@ -11,9 +11,9 @@ async function start(user){
   started=true;
   status.textContent='正在載入回放系統…';
   await script('webcodecs_export.js?v=09603bf',true);
-  await script('tra_web_engine.js?v=tof-strict-line-20261023');
-  await script('tof-counter.js?v=strict-line-20261023');
-  await script('tof-panel.js?v=strict-line-20261023');
+  await script('tra_web_engine.js?v=tof-body-box-20261023');
+  await script('tof-counter.js?v=body-box-20261023');
+  await script('tof-panel.js?v=body-box-20261023');
   await script('flutter_bootstrap.js');
   document.querySelector('#login-screen').remove();
   const exit=document.createElement('button');exit.id='replay-signout';exit.textContent='登出';exit.title='登出回放系統';exit.onclick=async()=>{await signOut(auth);location.reload();};document.body.append(exit);
