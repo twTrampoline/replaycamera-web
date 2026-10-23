@@ -3,7 +3,7 @@
 class AthleteTracker {
   constructor(){this.target=null;this.pending=null;this.lastTime=0;}
   select(point){this.pending=point;this.target=null;}
-  candidates(poses){return poses.map(p=>{
+  candidates(poses,bodyBoxes=[]){return poses.map((p,index)=>{
     const torso=[11,12,23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
     const hips=[23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
     if(torso.length<3||!hips.length)return null;
@@ -11,10 +11,10 @@ class AthleteTracker {
     const x=torso.reduce((a,v)=>a+v.x,0)/torso.length,y=torso.reduce((a,v)=>a+v.y,0)/torso.length;
     const hipY=hips.reduce((a,v)=>a+v.y,0)/hips.length;
     let spread=0,pairs=0;for(let i=0;i<torso.length;i++)for(let j=i+1;j<torso.length;j++){spread+=Math.hypot(torso[i].x-torso[j].x,torso[i].y-torso[j].y);pairs++;}
-    return {pose:p,x,y,hipY,size:Math.max(.035,spread/pairs),box:{x:Math.min(...points.map(v=>v.x)),y:Math.min(...points.map(v=>v.y)),right:Math.max(...points.map(v=>v.x)),bottom:Math.max(...points.map(v=>v.y))}};
+    return {pose:p,x,y,hipY,size:Math.max(.035,spread/pairs),box:bodyBoxes[index]||{x:Math.min(...points.map(v=>v.x)),y:Math.min(...points.map(v=>v.y)),right:Math.max(...points.map(v=>v.x)),bottom:Math.max(...points.map(v=>v.y))}};
   }).filter(Boolean);}
-  update(poses,t){
-    const people=this.candidates(poses);let chosen=null;
+  update(poses,t,bodyBoxes=[]){
+    const people=this.candidates(poses,bodyBoxes);let chosen=null;
     if(this.pending){
       const p=this.pending;
       const hits=people.filter(c=>p.x>=c.box.x-.03&&p.x<=c.box.right+.03&&p.y>=c.box.y-.03&&p.y<=c.box.bottom+.03).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y));

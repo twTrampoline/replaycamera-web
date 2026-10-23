@@ -7,11 +7,11 @@
     sample(t,y,bodyY=y){
       if(!['ground','ready','air'].includes(this.phase)||!Number.isFinite(t)||t<=this.lastInput)return;
       this.lastInput=t;
-      if(!Number.isFinite(y)||y<0||y>1){this.previous=null;this.notice='未能確認人物框底邊：不補算時間，保留已記錄動作';if(this.phase==='air')this.uncertain=true;return;}
+      if(!Number.isFinite(y)||y<0||y>1){this.previous=null;this.notice='未能確認人物框底邊：不補算時間，保留已記錄動作';if(this.phase==='air')this.uncertain=true;else if(this.details.length)this.details[this.details.length-1].bedEstimated=true;return;}
       let p=this.previous;
       const gap=this.lastSeen!==null?t-this.lastSeen:0;
       this.lastSeen=t;this.previous={t,y};
-      if(gap>250){p=null;if(this.phase==='air')this.uncertain=true;}
+      if(gap>250){p=null;if(this.phase==='air')this.uncertain=true;else if(this.details.length)this.details[this.details.length-1].bedEstimated=true;}
       const above=y<this.line; // Image y grows downwards. Equality is NOT airborne.
       this.notice=gap>250?'取樣不足，這段不補算；可用上傳影片逐格核對':'';
       if(!p){
@@ -26,21 +26,23 @@
       const airborne=wasAbove&&above?t-p.t:wasAbove?crossing-p.t:above?t-crossing:0;
       if(this.phase==='ground'){if(!above)this.phase='ready';return;}
       if(this.phase==='ready'){
+        if(this.details.length)this.details[this.details.length-1].bed+=(t-p.t-airborne)/1000;
         if(above&&!wasAbove){this.phase='air';this.takeoff=crossing;this.airTime=airborne;this.peak=Infinity;this.ascent=0;this.uncertain=false;this.trackPeak(bodyY);}
         return;
       }
       this.airTime+=airborne;
       if(this.routineStart===null&&this.airTime>=150)this.routineStart=this.takeoff;
       if(above)this.trackPeak(bodyY);
-      if(!above){this.finish();return;}
+      if(!above){this.finish();if(this.phase!=='complete'&&this.details.length)this.details[this.details.length-1].bed+=(t-crossing)/1000;return;}
       if(t-this.takeoff>5000){this.uncertain=true;this.finish();if(this.phase!=='complete')this.phase='ground';this.notice='長時間未見落線，請檢查黃線位置；未確認完整一跳';}
     }
     finish(){
-      if(this.airTime>=150){const air=this.airTime/1000;this.results.push(air);this.details.push({ascent:this.ascent/1000,descent:(this.airTime-this.ascent)/1000,air,estimated:this.uncertain});}
+      if(this.airTime>=150){const air=this.airTime/1000;this.results.push(air);this.details.push({ascent:this.ascent/1000,descent:(this.airTime-this.ascent)/1000,air,bed:0,bedEstimated:false,estimated:this.uncertain});}
       if(this.uncertain&&this.airTime<150)this.missingSegments++;
       this.phase=this.results.length===10?'complete':'ready';this.takeoff=null;
     }
     trackPeak(y){if(Number.isFinite(y)&&y<this.peak){this.peak=y;this.ascent=this.airTime;}}
+    get bedTotal(){return this.details.reduce((sum,d)=>sum+d.bed,0);}
     get total(){return this.results.reduce((a,b)=>a+b,0);}
   }
   root.FlightCounter=FlightCounter;if(typeof module!=='undefined')module.exports=FlightCounter;

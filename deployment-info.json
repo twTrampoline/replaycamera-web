@@ -1,5 +1,5 @@
 {
-  "source_commit": "0dde3f3",
+  "source_commit": "dc94e61",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -27,7 +27,11 @@
     "strict-line-no-gap-fill",
     "rotation-tolerant-torso-tracking",
     "selected-full-body-box-bottom-contact",
-    "highlighted-bottom-edge"
+    "highlighted-bottom-edge",
+    "connected-person-silhouette-box",
+    "separate-air-and-bed-totals",
+    "first-takeoff-to-tenth-landing",
+    "four-pixel-aligned-mask-input"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -43,5 +47,6 @@
   "tof_phase_tests": "Ten JS regression suites passed. Browser synthetic multi-person tracking with pose-array reorder completed ten jumps (10.59s total, 5.28s ascent + 5.31s descent). Point selection and side controls verified. Actual athletics accuracy not verified.",
   "uploaded_video_tests": "Real 20s H.264 MP4 decoding/seeking with synthetic pose detections: preparation excluded, first jump at 3.40s, pause held at 4.47s, resumed to ten jumps totaling 10.58s. Ten JS suites passed. Actual athletic pose accuracy not validated.",
   "strict_line_tests": "Ten JS regression suites passed. On/below line exclusion, missing and slow samples not bridged, partial measurements flagged, rotated torso and foot landmark outliers tested. Browser synthetic two-person fixture completed ten jumps (10.59s total, 5.31s ascent, 5.28s descent); foot dots and below-line status visually checked. Actual athletic tracking/count accuracy remains unverified without representative video.",
-  "body_box_tests": "Ten JS regression suites passed, including feet/seat/front/back/hand contact while feet are raised, on-line exclusion, coach exclusion, obscured feet, low-confidence outlier and out-of-frame box handling. Actual athlete video accuracy remains unverified."
+  "body_box_tests": "Ten JS regression suites passed, including feet/seat/front/back/hand contact while feet are raised, on-line exclusion, coach exclusion, obscured feet, low-confidence outlier and out-of-frame box handling. Actual athlete video accuracy remains unverified.",
+  "silhouette_bed_tests": "Ten JS regression suites passed. Real CPU segmentation on provided inverted-athlete screenshot gave a larger head/limb envelope than old torso-only box. Fixed float-mask abort on non-four-pixel-aligned widths. Synthetic browser completed ten flights (10.59s) and nine bed intervals (3.97s). Original continuous athlete footage and phone runtime performance not yet verified."
 }
