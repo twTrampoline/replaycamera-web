@@ -1,29 +1,30 @@
-let detector;
+importScripts('tof-athlete-tracker.js?v=continuous-20261023');
+let detector;const tracker=new AthleteTracker();
 self.onmessage=async({data})=>{
+  if(data.type==='select'){tracker.select(data.point);return;}
   if(data.type==='init'){
     try{
       const {FilesetResolver,PoseLandmarker}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs');
       const files=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm');
       detector=await PoseLandmarker.createFromOptions(files,{
         baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:'CPU'},
-        canvas:new OffscreenCanvas(256,256),runningMode:'VIDEO',numPoses:2,
-        minPoseDetectionConfidence:0.6,minPosePresenceConfidence:0.6,minTrackingConfidence:0.6,
-      });
-      self.postMessage({type:'ready'});
+        canvas:new OffscreenCanvas(256,256),runningMode:'VIDEO',numPoses:6,
+        minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45,
+      });self.postMessage({type:'ready'});
     }catch(e){self.postMessage({type:'error',message:'分析模型無法載入，請檢查網絡或改用電腦 Chrome。錄影不受影響。'});}
   }
   if(data.type==='frame'){
     try{
-      const result=detector.detectForVideo(data.bitmap,data.time);
-      const people=result.landmarks;
-      const feet=people.length===1?[27,28,29,30,31,32].map(i=>people[0][i]):[];
-      const valid=feet.length&&feet.every(p=>(p.visibility??0)>0.6&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1);
-      const hips=people.length===1?[people[0][23],people[0][24]]:[];
-      const hipsValid=hips.length&&hips.every(p=>(p.visibility??0)>0.6);
-      const usable=valid&&hipsValid;
-      self.postMessage({type:'sample',time:data.time,revision:data.revision,ambiguous:people.length>1,y:usable?Math.max(...feet.map(p=>p.y)):null,bodyY:usable?(hips[0].y+hips[1].y)/2:null,
-        message:people.length>1?'選取範圍內有多個人，請重新框選運動員':usable?'追蹤中':'請確保全身及雙腳清晰入鏡'});
-    }catch(e){self.postMessage({type:'error',message:'此裝置無法執行即時人體分析。錄影不受影響。'});}
+      const result=tracker.update(detector.detectForVideo(data.bitmap,data.time).landmarks,data.time);
+      const p=result.selected?.pose;
+      const leg=ids=>p?ids.map(i=>p[i]).filter(v=>v.visibility>=.35&&v.y>=0&&v.y<=1):[];
+      const left=leg([27,29,31]),right=leg([28,30,32]);
+      const valid=left.length&&right.length;
+      self.postMessage({type:'sample',time:data.time,revision:data.revision,
+        people:result.people.map(c=>c.box),selected:result.selected?.box||null,locked:result.locked,
+        y:valid?Math.max(...left.concat(right).map(v=>v.y)):null,bodyY:valid?result.selected.y:null,
+        message:!result.locked?'請點選正在跳的運動員':!valid?'暫時未看清運動員，保留本套並等待接續':'持續追蹤已選運動員'});
+    }catch(e){self.postMessage({type:'sample',time:data.time,revision:data.revision,people:[],selected:null,locked:!!tracker.target,y:null,bodyY:null,message:'暫時無法辨識，保留本套並等待接續'});}
     finally{data.bitmap.close();}
   }
 };
