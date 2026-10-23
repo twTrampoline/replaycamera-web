@@ -72,6 +72,7 @@
     if (!state.canvas) {
       const canvas = document.createElement('canvas');
       canvas.id = 'tra-live-canvas';
+      canvas.addEventListener('click', onLiveFocusClick);
       canvas.style.width = '100%';
       canvas.style.height = '100%';
       canvas.style.objectFit = 'contain';
@@ -383,6 +384,53 @@
       // Autofocus is best-effort; a driver rejection must not stop recording.
       return false;
     }
+  }
+
+  // Invert exactly the crop/rotation/mirror used by drawCover.
+  function focusSourcePoint(x, y) {
+    const video=state.sourceVideo,canvas=state.canvas;
+    if(!video||!canvas)return null;
+    const vw=video.videoWidth||1280,vh=video.videoHeight||720;
+    const turns=((state.portrait!==(vh>=vw)?1:0)+state.rotationQuarterTurns)%4;
+    const scale=Math.max(canvas.width/(turns%2?vh:vw),canvas.height/(turns%2?vw:vh));
+    let dx=(x-.5)*canvas.width,dy=(y-.5)*canvas.height;
+    if(state.mirror)dx=-dx;
+    const angle=turns*Math.PI/2;
+    return {x:Math.max(0,Math.min(1,(dx*Math.cos(angle)+dy*Math.sin(angle))/scale/vw+.5)),y:Math.max(0,Math.min(1,(-dx*Math.sin(angle)+dy*Math.cos(angle))/scale/vh+.5))};
+  }
+  let focusPending=false,focusToastTimer;
+  async function requestFocus(track,point,supported={}) {
+    if(!track||track.readyState==='ended')return '鏡頭尚未啟動';
+    try {
+      const modes=track.getCapabilities?.().focusMode;
+      if(!Array.isArray(modes)||!modes.some(m=>m==='single-shot'||m==='continuous'))return '此瀏覽器或鏡頭未提供點按對焦控制';
+      const old=track.getConstraints?.()||{},next={...old};
+      delete next.focusDistance;delete next.pointsOfInterest;
+      next.advanced=(old.advanced||[]).map(c=>{const v={...c};delete v.focusMode;delete v.focusDistance;delete v.pointsOfInterest;return v;}).filter(c=>Object.keys(c).length);
+      next.focusMode=modes.includes('single-shot')?'single-shot':'continuous';
+      if(supported.pointsOfInterest)next.pointsOfInterest=[point];
+      try{await track.applyConstraints(next);}catch(error){
+        if(!next.pointsOfInterest)throw error;
+        delete next.pointsOfInterest;await track.applyConstraints(next);
+        return '已請求自動對焦；鏡頭不接受指定位置';
+      }
+      return next.pointsOfInterest?'已向鏡頭送出此位置的對焦請求':'已請求自動對焦；此瀏覽器不支援指定位置';
+    }catch(_){return '鏡頭未接受對焦請求，錄影繼續';}
+  }
+  window.traWebEngineFocusAt=async function(x,y){
+    if(focusPending)return '正在處理對焦請求';
+    const point=focusSourcePoint(x,y);if(!point)return '鏡頭尚未啟動';
+    focusPending=true;
+    try{return await requestFocus(state.sourceStream?.getVideoTracks()[0],point,navigator.mediaDevices?.getSupportedConstraints?.()||{});}finally{focusPending=false;}
+  };
+  async function onLiveFocusClick(event){
+    const c=state.canvas,b=c.getBoundingClientRect(),scale=Math.min(b.width/c.width,b.height/c.height);
+    const x=(event.clientX-b.left-(b.width-c.width*scale)/2)/(c.width*scale),y=(event.clientY-b.top-(b.height-c.height*scale)/2)/(c.height*scale);
+    if(x<0||x>1||y<0||y>1)return;
+    let toast=document.getElementById('tra-focus-feedback');
+    if(!toast){toast=document.createElement('div');toast.id='tra-focus-feedback';toast.setAttribute('role','status');toast.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483647;background:#201d15;color:#f3d77d;border:1px solid #b99b4c;border-radius:10px;padding:12px;pointer-events:none;max-width:85vw;font:14px system-ui';document.body.appendChild(toast);}
+    clearTimeout(focusToastTimer);toast.hidden=false;toast.textContent='正在請求對焦…';
+    toast.textContent=await window.traWebEngineFocusAt(x,y);focusToastTimer=setTimeout(()=>{toast.hidden=true;},3500);
   }
 
   async function startCamera() {

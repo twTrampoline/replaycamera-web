@@ -4,7 +4,7 @@
  function update(message=''){
    if(!dialog)return;
    status.textContent=counter.error||message||counter.notice||labels[counter.phase];
-   summary.textContent=`${counter.results.length} / 10 個動作 · 空中 ${counter.total.toFixed(2)} 秒 · 沉網 ${counter.bedTotal.toFixed(2)} 秒${counter.missingSegments?` · ${counter.missingSegments} 段未能確認動作`:""}${(counter.missingSegments>0||counter.details.some(d=>d.estimated||d.bedEstimated))?"（有漏判，只含已觀察時間，非完整成績）":""}`;
+   summary.textContent=`${counter.phase==='air'?`第 ${counter.results.length+1} 個動作進行中 · `:''}${counter.results.length} / 10 個動作已完成 · 空中 ${counter.total.toFixed(2)} 秒 · 沉網 ${counter.bedTotal.toFixed(2)} 秒${counter.missingSegments?` · ${counter.missingSegments} 段未能確認動作`:""}${(counter.missingSegments>0||counter.details.some(d=>d.estimated||d.bedEstimated))?"（有漏判，只含已觀察時間，非完整成績）":""}`;
    const boundary=dialog.querySelector('#tof-boundary');boundary.textContent=lastY===null?'未能確認人物框底邊｜不補算時間':lastY<counter.line?(counter.phase==='air'&&!(mode==='file'&&filePaused)?'線上方｜正在計時':'線上方｜尚未計時／等待完整起跳'):(counter.phase==='ready'&&counter.details.length?'線上或線下｜沉網計時中':'線上或線下｜等待第一次離網');boundary.style.color=lastY===null?'#aaa':lastY<counter.line?'#65e5a0':'#efb477';
    const active=counter.phase==='air'?{ascent:counter.ascent/1000,descent:(counter.airTime-counter.ascent)/1000,air:counter.airTime/1000,bed:0,live:true,estimated:counter.uncertain}:null;
    const key=JSON.stringify([counter.details,active,counter.phase]);
@@ -90,7 +90,7 @@
 <p class="tof-small">點一下正在跳的運動員，確認綠框跟隨對象，再開始。教練及其他人可以留在畫面。黃線設在床面位置；全身長方形框的底邊高於黃線才計時，碰線或線下即視為着網，另外記錄沉網時間。適用於腳、坐、腹及背彈。</p>
 <p id="tof-mode" class="tof-small"></p><div class="tof-stage"><div><canvas id="tof-preview"></canvas><p id="tof-boundary" role="status"></p><p class="tof-small">點選身體，唔需要框住整個活動範圍。請保持全身入鏡。重選對象會清除本套結果。</p></div>
 <aside class="tof-controls" aria-label="計時控制"><div class="tof-primary"><button id="tof-start" disabled>開始 10 個動作</button><button id="tof-stop">停止計算</button></div><button id="tof-upload">上傳影片分析</button><input id="tof-file" type="file" accept="video/*" hidden><button id="tof-live">返回直播</button><div id="tof-media-controls" hidden><label for="tof-seek">移到第一個動作開始前</label><input id="tof-seek" type="range" min="0" max="0" value="0" step="0.0333333333"><p id="tof-position" class="tof-small"></p><p id="tof-origin" class="tof-small"></p><button id="tof-pause">暫停分析</button></div><button id="tof-select">選擇運動員</button><label for="tof-line">基準線高度</label><input id="tof-line" type="range" min="5" max="99" value="80"><button id="tof-calibrate">用人物框底邊設線</button><span class="tof-small">請在接觸床面時設線；以人物框底邊為準</span><button id="tof-copy">複製結果</button><p id="tof-status" role="status"></p></aside></div>
-<div class="tof-box"><strong id="tof-summary"></strong><p class="tof-small">按開始後先等待踩網，第一次離網才開始計時。每列記錄一次空中時間，以及之後落網至再離網的沉網時間。第 10 次落網即完成（10 次空中、9 段中間沉網），第一次離網前的準備時間不計；如有熱身跳躍，請先移到正式動作開始前。</p><div id="tof-list"></div></div>
+<div class="tof-box"><strong id="tof-summary"></strong><p class="tof-small">可在準備跳的空中按開始；系統先等下一次踩網，再於離網時開始第 1 個動作，之後連續記錄。每列記錄一次空中時間，以及之後落網至再離網的沉網時間。第 10 次落網即完成（10 次空中、9 段中間沉網），第一次離網前的準備時間不計；如有熱身跳躍，請先移到正式動作開始前。</p><div id="tof-list"></div></div>
 <p class="tof-small">空中：人物輪廓框底邊高於線；沉網：底邊碰線或在線下。兩種時間分開累計。追蹤缺失的區間不補時；星號表示該跳有漏判，所列為已觀察到的部分時間。可能漏掉動作，請核對順序。多人交錯時不能保證身份辨識，請留意綠框。輪廓遮擋或人物重疊會影響估算，這不是比賽電子計時。分析最多每秒 15 次，0.01 秒是顯示位數而非精度保證。模型首次使用需要下載，影像只在裝置處理。錄影繼續運作；低效能裝置可關閉分析。</p></div>`;
    document.body.append(dialog);
    preview=dialog.querySelector('#tof-preview');ctx=preview.getContext('2d');lineInput=dialog.querySelector('#tof-line');status=dialog.querySelector('#tof-status');summary=dialog.querySelector('#tof-summary');list=dialog.querySelector('#tof-list');startButton=dialog.querySelector('#tof-start');
@@ -101,7 +101,7 @@
    dialog.querySelector('#tof-seek').oninput=e=>{if(fileRun)return;resetSource();seekFile(Number(e.target.value));update('已移動位置，請重新點選運動員');};
    dialog.querySelector('#tof-pause').onclick=()=>{if(!fileRun)return;filePaused=!filePaused;update(filePaused?'分析已暫停，成績保留':'繼續逐格分析');};
    dialog.querySelector('#tof-select').onclick=()=>{fileRun=false;filePaused=false;selecting=true;revision++;counter.reset();lastY=null;update('請點一下正在跳的運動員身體');};
-   preview.onpointerdown=e=>{if(!ready||(!selecting&&locked))return;const b=preview.getBoundingClientRect();const scale=Math.min(b.width/preview.width,b.height/preview.height),w=preview.width*scale,h=preview.height*scale;const point={x:(e.clientX-b.left-(b.width-w)/2)/w,y:(e.clientY-b.top-(b.height-h)/2)/h};if(point.x<0||point.x>1||point.y<0||point.y>1)return;revision++;worker.postMessage({type:'select',point});locked=false;selecting=false;selectedBox=null;counter.reset();update('正在鎖定所選運動員…');};
+   preview.onpointerdown=e=>{if(!ready)return;const b=preview.getBoundingClientRect();const scale=Math.min(b.width/preview.width,b.height/preview.height),w=preview.width*scale,h=preview.height*scale;const point={x:(e.clientX-b.left-(b.width-w)/2)/w,y:(e.clientY-b.top-(b.height-h)/2)/h};if(point.x<0||point.x>1||point.y<0||point.y>1)return;if(!selecting&&locked){if(mode==='live')window.traWebEngineFocusAt?.(point.x,point.y).then(message=>update(message));return;}revision++;worker.postMessage({type:'select',point});locked=false;selecting=false;selectedBox=null;counter.reset();update('正在鎖定所選運動員…');};
    lineInput.oninput=()=>{counter.line=Number(lineInput.value)/100;counter.reset();update();};
    dialog.querySelector('#tof-calibrate').onclick=()=>{if(lastY===null)return;counter.line=Math.max(.05,Math.min(.99,lastY));lineInput.value=counter.line*100;counter.reset();update('已設定接觸床面基準線');};
    startButton.onclick=()=>{if(mode==='live'&&!window.traWebEngineIsRecording?.()){update('請先啟動鏡頭錄影');return;}revision++;counter.start();if(mode==='file'){fileRun=true;filePaused=false;}update();};
@@ -110,7 +110,7 @@
    dialog.querySelector('#tof-close').focus();dialog.onkeydown=e=>{if(e.key==='Escape')close();if(e.key==='Tab'){const items=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')];const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
    update('正在載入分析模型…');
    try{
-     worker=new Worker('tof-worker.js?v=silhouette-bed-20261023');
+     worker=new Worker('tof-worker.js?v=continuous-focus-20261023');
      worker.onmessage=({data})=>{
        if(!dialog)return;
        if(data.type==='ready'){clearTimeout(watchdog);ready=true;update('模型就緒，請設定基準線');}

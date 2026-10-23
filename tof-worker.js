@@ -1,4 +1,4 @@
-importScripts('tof-athlete-tracker.js?v=silhouette-bed-20261023');
+importScripts('tof-athlete-tracker.js?v=continuous-focus-20261023');
 // Extract only the selected person's connected silhouette, not a torso-only
 // landmark envelope. Ignore detached mask noise and other people's components.
 function silhouetteBox(mask,pose){

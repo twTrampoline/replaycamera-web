@@ -17,8 +17,12 @@
       if(!p){
         if(this.phase==='air'){
           this.uncertain=true;
-          if(!above||gap>1200){this.finish();if(this.phase!=='complete')this.phase=above?'ground':'ready';}
-        }else this.phase=above?'ground':'ready';
+          if(!above){this.finish(t);}
+        }else if(this.phase==='ready'&&above){
+          // A confirmed bed contact survives missing frames. We know takeoff
+          // happened, but cannot invent its exact time or missing duration.
+          this.beginFlight(t,0,bodyY,true);
+        }else if(!above)this.phase='ready';
         return; // Never interpolate across an unobserved interval.
       }
       const wasAbove=p.y<this.line;
@@ -27,18 +31,19 @@
       if(this.phase==='ground'){if(!above)this.phase='ready';return;}
       if(this.phase==='ready'){
         if(this.details.length)this.details[this.details.length-1].bed+=(t-p.t-airborne)/1000;
-        if(above&&!wasAbove){this.phase='air';this.takeoff=crossing;this.airTime=airborne;this.peak=Infinity;this.ascent=0;this.uncertain=false;this.trackPeak(bodyY);}
+        if(above&&!wasAbove)this.beginFlight(crossing,airborne,bodyY,false);
         return;
       }
       this.airTime+=airborne;
       if(this.routineStart===null&&this.airTime>=150)this.routineStart=this.takeoff;
       if(above)this.trackPeak(bodyY);
-      if(!above){this.finish();if(this.phase!=='complete'&&this.details.length)this.details[this.details.length-1].bed+=(t-crossing)/1000;return;}
-      if(t-this.takeoff>5000){this.uncertain=true;this.finish();if(this.phase!=='complete')this.phase='ground';this.notice='長時間未見落線，請檢查黃線位置；未確認完整一跳';}
+      if(!above){this.finish(t);if(this.phase!=='complete'&&this.details.length)this.details[this.details.length-1].bed+=(t-crossing)/1000;return;}
+      if(t-this.takeoff>5000){this.uncertain=true;this.notice='未確認下一次着網，保留目前動作；請核對人物框及基準線';}
     }
-    finish(){
-      if(this.airTime>=150){const air=this.airTime/1000;this.results.push(air);this.details.push({ascent:this.ascent/1000,descent:(this.airTime-this.ascent)/1000,air,bed:0,bedEstimated:false,estimated:this.uncertain});}
-      if(this.uncertain&&this.airTime<150)this.missingSegments++;
+    beginFlight(t,observed,bodyY,uncertain){this.phase='air';this.takeoff=t;this.airTime=observed;this.peak=Infinity;this.ascent=0;this.uncertain=uncertain;this.trackPeak(bodyY);}
+    finish(t){
+      if(this.airTime>=150||(this.uncertain&&t-this.takeoff>=150)){if(this.routineStart===null)this.routineStart=this.takeoff;const air=this.airTime/1000;this.results.push(air);this.details.push({ascent:this.ascent/1000,descent:(this.airTime-this.ascent)/1000,air,bed:0,bedEstimated:false,estimated:this.uncertain});}
+      else if(this.uncertain)this.missingSegments++;
       this.phase=this.results.length===10?'complete':'ready';this.takeoff=null;
     }
     trackPeak(y){if(Number.isFinite(y)&&y<this.peak){this.peak=y;this.ascent=this.airTime;}}
