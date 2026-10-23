@@ -1,5 +1,5 @@
 {
-  "source_commit": "2f5a2e6",
+  "source_commit": "a7e0e7a",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -20,7 +20,10 @@
     "click-selected-athlete-continuity",
     "nonfatal-occlusion-recovery",
     "live-jump-phase-rows",
-    "side-by-side-timing-controls"
+    "side-by-side-timing-controls",
+    "local-video-upload-analysis",
+    "media-time-frame-stepping",
+    "first-valid-jump-origin"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -33,5 +36,6 @@
   "tof_tests": "Counter regression tests (10 jumps, interpolation, below-line exclusion, interruption, reset) and real worker/model loading passed; actual athletic accuracy not validated",
   "current_validation": "All eight JS regression suites and three Flutter tests passed; release build passed",
   "three_minute_test": "Synthetic recording observed healthy through 107 seconds; browser automation subsequently became unresponsive, full 180-second retention not verified",
-  "tof_phase_tests": "Ten JS regression suites passed. Browser synthetic multi-person tracking with pose-array reorder completed ten jumps (10.59s total, 5.28s ascent + 5.31s descent). Point selection and side controls verified. Actual athletics accuracy not verified."
+  "tof_phase_tests": "Ten JS regression suites passed. Browser synthetic multi-person tracking with pose-array reorder completed ten jumps (10.59s total, 5.28s ascent + 5.31s descent). Point selection and side controls verified. Actual athletics accuracy not verified.",
+  "uploaded_video_tests": "Real 20s H.264 MP4 decoding/seeking with synthetic pose detections: preparation excluded, first jump at 3.40s, pause held at 4.47s, resumed to ten jumps totaling 10.58s. Ten JS suites passed. Actual athletic pose accuracy not validated."
 }

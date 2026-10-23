@@ -1,7 +1,7 @@
 (function(root){
   class FlightCounter {
     constructor(line=0.8){this.line=line;this.reset();}
-    reset(){this.uncertain=false;this.notice='';this.results=[];this.details=[];this.peak=Infinity;this.ascent=0;this.phase='idle';this.previous=null;this.candidate=null;this.takeoff=null;this.error='';this.airTime=0;}
+    reset(){this.routineStart=null;this.uncertain=false;this.notice='';this.results=[];this.details=[];this.peak=Infinity;this.ascent=0;this.phase='idle';this.previous=null;this.candidate=null;this.takeoff=null;this.error='';this.airTime=0;}
     start(){this.reset();this.phase='ground';}
     stop(reason='已停止'){this.phase='stopped';this.error=reason;}
     sample(t,y,bodyY=y){
@@ -29,6 +29,7 @@
         return;
       }
       this.airTime+=airborne;
+      if(this.routineStart===null&&this.airTime>=150)this.routineStart=this.takeoff;
       if(above)this.trackPeak(bodyY);
       if(t-this.takeoff>5000){this.recoverGap();this.phase=this.results.length===10?'complete':'ground';return;}
       if(!above){

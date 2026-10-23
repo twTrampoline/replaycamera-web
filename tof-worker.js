@@ -15,16 +15,16 @@ self.onmessage=async({data})=>{
   }
   if(data.type==='frame'){
     try{
-      const result=tracker.update(detector.detectForVideo(data.bitmap,data.time).landmarks,data.time);
+      const result=tracker.update(detector.detectForVideo(data.bitmap,data.time).landmarks,data.sampleTime??data.time);
       const p=result.selected?.pose;
       const leg=ids=>p?ids.map(i=>p[i]).filter(v=>v.visibility>=.35&&v.y>=0&&v.y<=1):[];
       const left=leg([27,29,31]),right=leg([28,30,32]);
       const valid=left.length&&right.length;
-      self.postMessage({type:'sample',time:data.time,revision:data.revision,
+      self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,
         people:result.people.map(c=>c.box),selected:result.selected?.box||null,locked:result.locked,
         y:valid?Math.max(...left.concat(right).map(v=>v.y)):null,bodyY:valid?result.selected.y:null,
         message:!result.locked?'請點選正在跳的運動員':!valid?'暫時未看清運動員，保留本套並等待接續':'持續追蹤已選運動員'});
-    }catch(e){self.postMessage({type:'sample',time:data.time,revision:data.revision,people:[],selected:null,locked:!!tracker.target,y:null,bodyY:null,message:'暫時無法辨識，保留本套並等待接續'});}
+    }catch(e){self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,people:[],selected:null,locked:!!tracker.target,y:null,bodyY:null,message:'暫時無法辨識，保留本套並等待接續'});}
     finally{data.bitmap.close();}
   }
 };
