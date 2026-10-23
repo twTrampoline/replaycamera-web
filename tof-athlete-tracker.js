@@ -4,11 +4,14 @@ class AthleteTracker {
   constructor(){this.target=null;this.pending=null;this.lastTime=0;}
   select(point){this.pending=point;this.target=null;}
   candidates(poses){return poses.map(p=>{
-    const torso=[11,12,23,24].map(i=>p[i]);
-    if(torso.some(v=>!v||v.visibility<.35))return null;
-    const points=p.filter(v=>v.visibility>=.35&&Number.isFinite(v.x)&&Number.isFinite(v.y));
-    const x=(p[23].x+p[24].x)/2,y=(p[23].y+p[24].y)/2;
-    return {pose:p,x,y,size:Math.max(.035,Math.hypot((p[11].x+p[12].x)/2-x,(p[11].y+p[12].y)/2-y)),box:{x:Math.min(...points.map(v=>v.x)),y:Math.min(...points.map(v=>v.y)),right:Math.max(...points.map(v=>v.x)),bottom:Math.max(...points.map(v=>v.y))}};
+    const torso=[11,12,23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
+    const hips=[23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
+    if(torso.length<3||!hips.length)return null;
+    const points=p.filter(v=>v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
+    const x=torso.reduce((a,v)=>a+v.x,0)/torso.length,y=torso.reduce((a,v)=>a+v.y,0)/torso.length;
+    const hipY=hips.reduce((a,v)=>a+v.y,0)/hips.length;
+    let spread=0,pairs=0;for(let i=0;i<torso.length;i++)for(let j=i+1;j<torso.length;j++){spread+=Math.hypot(torso[i].x-torso[j].x,torso[i].y-torso[j].y);pairs++;}
+    return {pose:p,x,y,hipY,size:Math.max(.035,spread/pairs),box:{x:Math.min(...points.map(v=>v.x)),y:Math.min(...points.map(v=>v.y)),right:Math.max(...points.map(v=>v.x)),bottom:Math.max(...points.map(v=>v.y))}};
   }).filter(Boolean);}
   update(poses,t){
     const people=this.candidates(poses);let chosen=null;
@@ -19,7 +22,7 @@ class AthleteTracker {
     } else if(this.target){
       const old=this.target,dt=Math.min(.25,Math.max(0,(t-this.lastTime)/1000));
       const px=old.x+old.vx*dt,py=old.y+old.vy*dt;
-      const ranked=people.map(c=>({c,score:Math.hypot((c.x-px)*2,c.y-py)+Math.abs(Math.log(c.size/old.size))*.12})).filter(({c,score})=>Math.abs(c.x-old.x)<.18&&Math.abs(c.y-old.y)<.5&&c.size/old.size>.4&&c.size/old.size<2.5&&score<.55).sort((a,b)=>a.score-b.score);
+      const ranked=people.map(c=>({c,score:Math.hypot((c.x-px)*2,c.y-py)+Math.abs(Math.log(c.size/old.size))*.12})).filter(({c,score})=>Math.abs(c.x-old.x)<.18&&Math.abs(c.y-old.y)<.5&&score<.55).sort((a,b)=>a.score-b.score);
       if(ranked.length&&(!ranked[1]||ranked[1].score-ranked[0].score>.1))chosen=ranked[0].c;
     }
     if(chosen){
