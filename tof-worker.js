@@ -87,13 +87,14 @@ self.onmessage=async({data})=>{
       // hips, shoulders and hands during seat/front/back landings.
       const poseIndex=detection.landmarks.indexOf(result.selected?.pose);
       const box=poseIndex>=0?silhouetteBox(detection.segmentationMasks?.[poseIndex],result.selected.pose):null;
-      const complete=!!box;
-      const valid=complete&&!!box&&[box.x,box.y,box.right,box.bottom].every(Number.isFinite)&&box.x>=0&&box.y>=0&&box.right<=1&&box.bottom<=1;
+      const trackingBox=box||result.selected?.box||null;
+      const complete=!!trackingBox;
+      const valid=complete&&[trackingBox.x,trackingBox.y,trackingBox.right,trackingBox.bottom].every(Number.isFinite)&&trackingBox.x>=0&&trackingBox.y>=0&&trackingBox.right<=1&&trackingBox.bottom<=1;
       self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,
         landmarks:result.selected?.pose?.map(p=>({x:p.x,y:p.y,visibility:p.visibility}))||[],
-        people:result.people.map(c=>c===result.selected&&box?box:c.box),selected:complete?box:null,locked:result.locked,
-        y:valid?box.bottom:null,bodyY:valid?result.selected.hipY:null,
-        message:!result.locked?'請點選正在跳的運動員':!valid?'所選運動員追蹤未確認，保留本套；不自動轉跟旁人':'持續追蹤已選運動員'});
+        people:result.people.map(c=>c===result.selected&&trackingBox?trackingBox:c.box),selected:complete?trackingBox:null,locked:result.locked,
+        y:valid?trackingBox.bottom:null,bodyY:valid?result.selected.hipY:null,
+        message:!result.locked?'請點選正在跳的運動員':!valid?'所選運動員追蹤未確認，保留本套；不自動轉跟旁人':!box?'骨架追蹤中（輪廓未確認）':'持續追蹤已選運動員'});
       });
     }catch(e){self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,people:[],selected:null,locked:!!tracker.target,y:null,bodyY:null,message:'暫時無法辨識，保留本套並等待接續'});}
     finally{detection?.segmentationMasks?.forEach(m=>m.close());data.bitmap.close();}

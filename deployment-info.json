@@ -1,5 +1,5 @@
 {
-  "source_commit": "6106ebd",
+  "source_commit": "cc6f325",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -51,7 +51,8 @@
     "independent-live-preview-rendering",
     "immediate-line-contact-without-duration-filter",
     "vertical-right-baseline-slider",
-    "video-start-slider-before-actions"
+    "video-start-slider-before-actions",
+    "selected-skeleton-box-fallback-for-missing-segmentation"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -77,5 +78,6 @@
   "full_body_model_tests": "Eleven regression suites passed. Full model loaded and returned selected pose and segmentation for inverted-athlete screenshot in real desktop browser. Mobile model selector checked. Continuous user ten-jump video and phone throughput remain unverified.",
   "reference_video_investigation": "12.54s user MOV tested locally at 15 samples/s with fixed initial selection. CPU Lite: 11/188 usable selected bottoms and one flight; Full: 3/188 and zero flights; cropped Full: 21/188 and two flights. Mean worker response 86/109/115ms. GPU trial was faster but did not track reliably and is not released. These are end-to-end tests, not model accuracy scores. Original video not published. Reliable ten-jump live counting remains unresolved.",
   "preview_render_test": "11 regression suites passed; actual desktop browser preview fixture measured 60 draws/s with separate requestAnimationFrame, inference stays bounded to one pending frame.",
-  "line_boundary_tests": "Eleven regression suites passed. Equality/below is bed, above is air, first takeoff starts immediately, no 150ms duration filter. Mobile 390x844 with original MOV verified right vertical baseline and starting-position slider below video before buttons. Tracking completeness remains unresolved; strict crossings can count noisy boxes."
+  "line_boundary_tests": "Eleven regression suites passed. Equality/below is bed, above is air, first takeoff starts immediately, no 150ms duration filter. Mobile 390x844 with original MOV verified right vertical baseline and starting-position slider below video before buttons. Tracking completeness remains unresolved; strict crossings can count noisy boxes.",
+  "tracking_note": "When connected person mask is missing, the selected pose box is still drawn in green and its bottom edge is used for the strict line test. Pose box may be less accurate; keep visual confirmation. No accuracy claim."
 }

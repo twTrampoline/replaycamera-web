@@ -165,7 +165,7 @@
    dialog.querySelector('#tof-close').focus();dialog.onkeydown=e=>{if(e.key==='Escape')close();if(e.key==='Tab'){const items=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')];const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
    update('正在載入分析模型…');
    try{
-     worker=new Worker('tof-worker.js?v=body-model-20261024');
+     worker=new Worker('tof-worker.js?v=skeleton-fallback-20261024');
      worker.onmessage=({data})=>{
        if(!dialog)return;
        if(data.type==='ready'){clearTimeout(watchdog);ready=true;update((quality==='full'?'完整':'輕量')+'人體模型就緒，請選人並設定基準線');}
