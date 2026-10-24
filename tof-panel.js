@@ -10,7 +10,7 @@
    dialog.querySelector('#tof-side-speed').textContent=lastResultAt?`辨識延遲約 ${Math.round(lastLatencyMs)} ms${mode==='live'&&lastLatencyMs>250?' · 較慢，建議上傳影片核對':''}`:'等待辨識';
    status.textContent=counter.error||message||counter.notice||labels[counter.phase];
    summary.textContent=`${counter.phase==='air'?`第 ${counter.results.length+1} 個動作進行中 · `:''}${counter.results.length} / 10 個動作已完成 · 空中 ${counter.total.toFixed(2)} 秒 · 沉網 ${counter.bedTotal.toFixed(2)} 秒${counter.missingSegments?` · ${counter.missingSegments} 段未能確認動作`:""}${(counter.missingSegments>0||counter.details.some(d=>d.estimated||d.bedEstimated))?"（含推算，待核對，非確認成績）":""}`;
-   const boundary=dialog.querySelector('#tof-boundary');boundary.textContent=counter.phase==='complete'?'第 10 次着網已結束｜請核對結果':counter.phase==='stopped'?'已停止｜保留目前結果':lastY===null?'未能確認人物框底邊｜持續推算，待核對':lastY<counter.line?(counter.phase==='air'&&!(mode==='file'&&filePaused)?'線上方｜正在計時':'線上方｜尚未計時／等待完整起跳'):(counter.phase==='ready'&&counter.details.length?'線上或線下｜沉網計時中':'線上或線下｜等待第一次離網');boundary.style.color=lastY===null?'#aaa':lastY<counter.line?'#65e5a0':'#efb477';
+   const boundary=dialog.querySelector('#tof-boundary');boundary.textContent=counter.phase==='complete'?'第 10 次着網已結束｜請核對結果':counter.phase==='stopped'?'已停止｜保留目前結果':lastY===null?(counter.routineStart===null?'未確認着網／離網，尚未開始計時':'追蹤未確認｜時間含推算，待核對'):lastY<counter.line?(counter.phase==='air'&&!(mode==='file'&&filePaused)?'線上方｜正在計時':'線上方｜尚未計時／等待完整起跳'):(counter.phase==='ready'&&counter.details.length?'線上或線下｜沉網計時中':'線上或線下｜等待第一次離網');boundary.style.color=lastY===null?'#aaa':lastY<counter.line?'#65e5a0':'#efb477';
    const active=counter.phase==='air'?{ascent:counter.ascent/1000,descent:(counter.airTime-counter.ascent)/1000,air:counter.activeAir,bed:0,live:true,estimated:counter.uncertain}:null;
    const key=JSON.stringify([counter.details,active,counter.phase]);
    dialog.querySelector('#tof-audit').textContent=counter.routineStart===null?'等待第一次踩網後離網；準備時間不計':`時間核對：起點至${counter.phase==='complete'?'第 10 次着網':'目前'} ${counter.timelineTotal.toFixed(2)} 秒；空中＋沉網（含進行中） ${(counter.total+counter.bedTotal+counter.activeAir).toFixed(2)} 秒。${counter.unverifiedTime>.001?`其中 ${counter.unverifiedTime.toFixed(2)} 秒未直接確認分類，已包含在推算時間內，需核對。`:'沒有未確認的取樣區間。'}`;
@@ -23,7 +23,7 @@
      }).join('')+`</tbody><tfoot><tr><th>已記錄總計</th><td>${counter.total.toFixed(2)}</td><td>${counter.bedTotal.toFixed(2)}</td></tr></tfoot></table>`;
    }
    const mediaControls=dialog.querySelector('#tof-media-controls');mediaControls.hidden=mode!=='file';
-   if(mode==='file'&&fileVideo){dialog.querySelector('#tof-position').textContent=`影片 ${fileVideo.currentTime.toFixed(2)} / ${Number.isFinite(fileVideo.duration)?fileVideo.duration.toFixed(2):'—'} 秒`;dialog.querySelector('#tof-seek').value=fileVideo.currentTime;dialog.querySelector('#tof-pause').disabled=!fileRun;dialog.querySelector('#tof-pause').textContent=filePaused?'繼續分析':'暫停分析';dialog.querySelector('#tof-seek').disabled=fileRun;dialog.querySelector('#tof-origin').textContent=counter.routineStart===null?'等待第一跳：準備時間不計入成績':`第一跳起點：影片 ${(counter.routineStart/1000).toFixed(2)} 秒（由此開始記錄）`;}
+   if(mode==='file'&&fileVideo){dialog.querySelector('#tof-position').textContent=`影片 ${fileVideo.currentTime.toFixed(2)} / ${Number.isFinite(fileVideo.duration)?fileVideo.duration.toFixed(2):'—'} 秒`;dialog.querySelector('#tof-seek').value=fileVideo.currentTime;dialog.querySelector('#tof-pause').disabled=!fileRun;dialog.querySelector('#tof-pause').textContent=filePaused?'▶ 繼續':'Ⅱ 暫停';dialog.querySelector('#tof-seek').disabled=fileRun;dialog.querySelector('#tof-origin').textContent=counter.routineStart===null?'等待第一跳：準備時間不計入成績':`第一跳起點：影片 ${(counter.routineStart/1000).toFixed(2)} 秒（由此開始記錄）`;}
    dialog.querySelector('#tof-mode').textContent=mode==='file'?'影片分析（只在本機處理）':'直播計時';
    const running=['ground','ready','air'].includes(counter.phase);
    lineInput.disabled=running;dialog.querySelector('#tof-calibrate').disabled=running||lastY===null;startButton.disabled=!ready||running||!locked||selecting||(mode==='file'&&(!fileVideo||fileVideo.readyState<2||fileSeeking));
@@ -99,6 +99,25 @@
 <aside class="tof-controls" aria-label="計時控制"><div class="tof-primary"><section class="tof-live-score" aria-label="Time of Flight 即時結果"><strong>Time of Flight</strong><div id="tof-side-air">0.00 s</div><div id="tof-side-count">等待開始</div><div id="tof-side-bed">沉網 0.00 s</div><small id="tof-side-quality"></small><small id="tof-side-speed"></small></section><button id="tof-start" disabled>開始 10 個動作</button><button id="tof-stop">停止計算</button></div><button id="tof-upload">上傳影片分析</button><input id="tof-file" type="file" accept="video/*" hidden><button id="tof-live">返回直播</button><div id="tof-media-controls" hidden><label for="tof-seek">移到第一個動作開始前</label><input id="tof-seek" type="range" min="0" max="0" value="0" step="0.0333333333"><p id="tof-position" class="tof-small"></p><p id="tof-origin" class="tof-small"></p><button id="tof-pause">暫停分析</button></div><button id="tof-select">選擇運動員</button><label for="tof-line">基準線高度</label><input id="tof-line" type="range" min="5" max="99" value="80"><button id="tof-calibrate">用人物框底邊設線</button><span class="tof-small">請在接觸床面時設線；以人物框底邊為準</span><button id="tof-copy">複製結果</button><p id="tof-status" role="status"></p></aside></div>
 <div class="tof-box"><strong id="tof-summary"></strong><p id="tof-audit" role="status"></p><p class="tof-small">可在準備跳的空中按開始；系統先等下一次踩網，再於離網時開始第 1 個動作，之後連續記錄。每列記錄一次空中時間，以及之後落網至再離網的沉網時間。第 10 次落網即完成（10 次空中、9 段中間沉網），第一次離網前的準備時間不計；如有熱身跳躍，請先移到正式動作開始前。</p><div id="tof-list"></div></div>
 <p class="tof-small">空中：人物輪廓框底邊高於線；沉網：底邊碰線或在線下。兩種時間分開累計。空中時間包括上升及下降，由離網至着網連續計算；沉網由着網至下次離網計算。星號表示含推算：追蹤缺失時暫沿用原階段，需逐格核對着網／離網位置，不能當作確認成績。可能漏掉動作，請核對順序。多人交錯時不能保證身份辨識，請留意綠框。輪廓遮擋或人物重疊會影響估算，這不是比賽電子計時。分析最多每秒 15 次，0.01 秒是顯示位數而非精度保證。模型首次使用需要下載，影像只在裝置處理。錄影繼續運作；低效能裝置可關閉分析。</p></div>`;
+   const stage=dialog.querySelector('.tof-stage'),videoColumn=stage.firstElementChild;
+   const controls=dialog.querySelector('.tof-controls'),score=dialog.querySelector('.tof-live-score');
+   const actions=document.createElement('div');actions.className='tof-actions';
+   const compact={'tof-start':['▶','開始','開始 10 個動作'],'tof-stop':['■','停止','停止計算'],'tof-upload':['↑','影片','上傳影片分析'],'tof-live':['●','直播','返回直播'],'tof-select':['◎','選人','選擇運動員'],'tof-calibrate':['↔','設線','用人物框底邊設線'],'tof-copy':['▣','複製','複製結果']};
+   for(const [id,[icon,label,full]] of Object.entries(compact)){const b=dialog.querySelector('#'+id);b.textContent=icon+' '+label;b.setAttribute('aria-label',full);b.title=full;actions.append(b);}
+   videoColumn.insertBefore(actions,videoColumn.querySelector('#tof-boundary'));
+   const settings=document.createElement('div');settings.className='tof-settings';
+   for(const child of [...controls.children])if(!child.classList.contains('tof-primary'))settings.append(child);
+   videoColumn.append(settings);controls.replaceChildren(score);
+   const layout=document.createElement('style');layout.textContent=`
+#tof-panel .tof-stage{grid-template-columns:minmax(0,1fr) 200px}
+#tof-panel .tof-stage>div{grid-column:1;grid-row:1}
+#tof-panel .tof-controls{grid-column:2;grid-row:1;padding:0;border:0;background:none}
+#tof-panel .tof-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#tof-panel .tof-actions button,#tof-panel #tof-pause{font-size:13px;padding:8px 10px;min-height:36px;margin:0}
+#tof-panel .tof-settings{display:flex;flex-direction:column;gap:8px}
+#tof-panel .tof-settings input[type=range]{width:100%}
+@media(max-width:600px){#tof-panel .tof-stage{grid-template-columns:minmax(0,1fr) 110px;gap:8px}#tof-panel #tof-side-air{font-size:22px}#tof-panel .tof-live-score{padding:6px}#tof-panel .tof-actions{gap:4px}#tof-panel .tof-actions button{padding:7px;font-size:12px}}
+`;dialog.append(layout);
    document.body.append(dialog);
    preview=dialog.querySelector('#tof-preview');ctx=preview.getContext('2d');lineInput=dialog.querySelector('#tof-line');status=dialog.querySelector('#tof-status');summary=dialog.querySelector('#tof-summary');list=dialog.querySelector('#tof-list');startButton=dialog.querySelector('#tof-start');
    dialog.querySelector('#tof-close').onclick=close;
@@ -117,7 +136,7 @@
    dialog.querySelector('#tof-close').focus();dialog.onkeydown=e=>{if(e.key==='Escape')close();if(e.key==='Tab'){const items=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')];const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
    update('正在載入分析模型…');
    try{
-     worker=new Worker('tof-worker.js?v=identity-lock-20261024');
+     worker=new Worker('tof-worker.js?v=tracking-recovery-20261024');
      worker.onmessage=({data})=>{
        if(!dialog)return;
        if(data.type==='ready'){clearTimeout(watchdog);ready=true;update('模型就緒，請設定基準線');}

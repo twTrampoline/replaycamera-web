@@ -1,5 +1,5 @@
 {
-  "source_commit": "0319962",
+  "source_commit": "c006d6b",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -41,9 +41,11 @@
     "skeleton-corridor-background-filter",
     "capture-age-overlay-expiry",
     "visible-inference-latency",
-    "left-column-live-timing-card",
     "selected-athlete-appearance-anchor",
-    "conservative-identity-reacquisition"
+    "conservative-identity-reacquisition",
+    "right-timing-card",
+    "compact-controls-below-video",
+    "consecutive-appearance-reacquisition"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -64,5 +66,6 @@
   "continuous_focus_tests": "Eleven JS suites passed: preparation-flight start, ten cycles with a gap after each confirmed bed contact, active-flight continuity without fabricated timeout landing, partial-time labeling; focus constraints/capture preservation, unsupported and rejected controls, all rotations/mirrors. Browser canvas click sent single-shot and point constraints to a simulated camera. Actual ten-jump footage and optical focus on owner phone remain unverified.",
   "interval_timing_tests": "Eleven JS suites passed. Synthetic 0.75s to 10.73s routine with missing detections: 8s flight + 1.98s bed = 9.98s, with unverified classification explicitly flagged. 200 deterministic random-dropout sequences reconciled. Browser ten-flight fixture: 10.59s air + 3.97s bed = 14.56s start-to-end. This fixes discarded elapsed time, not actual pose/transition accuracy; original user video not provided.",
   "sidebar_tracking_tests": "Eleven JS regression suites passed, including connected-background rejection and skipping nonselected mask pixels. Mobile 390x844 synthetic UI: sidebar air 10.61s + bed 3.97s = 14.58s for ten jumps. Latest small-person screenshot yielded no pose with both baseline and revised model; desktop warm inference about 55–70ms. Phone speed/accuracy improvement unverified; do not claim real-time scoring solved.",
-  "identity_tracking_tests": "Eleven JS suites passed, including actual pixel clothing descriptors, bystander rejection, pose reorder, small false torso rejection and long-loss uncertainty. Mobile 390x844 synthetic fixture completed ten flights: 10.66s air + 3.90s bed. Original continuous athlete footage accuracy remains unverified; similar clothing, occlusion and missed poses can still cause incorrect or lost tracking."
+  "identity_tracking_tests": "Eleven JS suites passed, including actual pixel clothing descriptors, bystander rejection, pose reorder, small false torso rejection and long-loss uncertainty. Mobile 390x844 synthetic fixture completed ten flights: 10.66s air + 3.90s bed. Original continuous athlete footage accuracy remains unverified; similar clothing, occlusion and missed poses can still cause incorrect or lost tracking.",
+  "tracking_recovery_tests": "Eleven regression suites passed, including consecutive matching athlete reacquisition after stale vertical prediction. Mobile 390x844 synthetic fixture completed ten actions with compact buttons below video and score at right. Actual user video counting remains unverified."
 }

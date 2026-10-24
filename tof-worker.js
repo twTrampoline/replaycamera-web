@@ -1,4 +1,4 @@
-importScripts('tof-athlete-tracker.js?v=identity-lock-20261024');
+importScripts('tof-athlete-tracker.js?v=tracking-recovery-20261024');
 // Extract only the selected person's connected silhouette, not a torso-only
 // landmark envelope. Ignore detached mask noise and other people's components.
 function silhouetteBox(mask,pose){

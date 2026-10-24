@@ -1,8 +1,8 @@
 // Geometry-based continuity tracking. Never use pose-array order as identity.
 (function(root){
 class AthleteTracker {
-  constructor(){this.target=null;this.pending=null;this.lastTime=0;this.reference=null;this.bystanders=[];}
-  select(point){this.pending=point;this.target=null;this.reference=null;this.bystanders=[];}
+  constructor(){this.target=null;this.pending=null;this.lastTime=0;this.reference=null;this.bystanders=[];this.recovery=null;}
+  select(point){this.pending=point;this.target=null;this.reference=null;this.bystanders=[];this.recovery=null;}
   candidates(poses,bodyBoxes=[],appearances=[]){return poses.map((p,index)=>{
     const torso=[11,12,23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
     const hips=[23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
@@ -37,7 +37,21 @@ class AthleteTracker {
       }).filter(r=>r.valid).sort((a,b)=>a.score-b.score);
       if(ranked.length&&(!ranked[1]||ranked[1].score-ranked[0].score>.1))chosen=ranked[0].c;
     }
+    // After a gap, stale vertical velocity must not permanently exclude a
+    // returning jumper. Require consecutive appearance/lane matches instead.
+    if(!chosen&&this.target&&t-this.lastTime>300&&this.reference?.appearance){
+      const matches=people.filter(c=>{
+        const d=appearanceDistance(this.reference.appearance,c.appearance);
+        return d!==null&&d<.45&&Math.abs(c.x-this.target.x)<.14&&c.size/this.reference.size>=.5&&c.size/this.reference.size<=2;
+      });
+      if(matches.length===1){const c=matches[0],r=this.recovery;
+        const continuous=r&&t-r.time<=250&&Math.hypot(c.x-r.x,c.y-r.y)<.22;
+        this.recovery={x:c.x,y:c.y,time:t,count:continuous?r.count+1:1};
+        if(this.recovery.count>=3)chosen=c;
+      }else this.recovery=null;
+    }
     if(chosen){
+      this.recovery=null;
       const old=this.target,dt=Math.max(.05,(t-this.lastTime)/1000);
       this.target={...chosen,vx:old?Math.max(-1,Math.min(1,(chosen.x-old.x)/dt)):0,vy:old?Math.max(-3,Math.min(3,(chosen.y-old.y)/dt)):0};this.lastTime=t;
     }
