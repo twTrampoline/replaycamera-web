@@ -1,4 +1,4 @@
-importScripts('tof-athlete-tracker.js?v=side-timing-20261024');
+importScripts('tof-athlete-tracker.js?v=identity-lock-20261024');
 // Extract only the selected person's connected silhouette, not a torso-only
 // landmark envelope. Ignore detached mask noise and other people's components.
 function silhouetteBox(mask,pose){
@@ -37,6 +37,32 @@ function silhouetteBox(mask,pose){
  if(count<8)return null;
  return {x:left/w,y:top/h,right:(right+1)/w,bottom:(bottom+1)/h};
 }
+// Lightweight clothing-colour descriptor sampled inside the torso polygon.
+// Frames/descriptors stay in this worker; no face recognition or server upload.
+let appearanceCanvas;
+function appearanceDescriptors(bitmap,poses){
+ if(!poses.length)return [];
+ try{
+  if(!appearanceCanvas)appearanceCanvas=new OffscreenCanvas(160,160);
+  const w=160,h=Math.max(1,Math.round(w*bitmap.height/bitmap.width));
+  if(appearanceCanvas.height!==h)appearanceCanvas.height=h;
+  const context=appearanceCanvas.getContext('2d',{willReadFrequently:true});
+  context.drawImage(bitmap,0,0,w,h);const pixels=context.getImageData(0,0,w,h).data;
+  return poses.map(p=>{
+   const corners=[p[11],p[12],p[23],p[24]];
+   if(corners.some(v=>!v||v.visibility<.3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))return null;
+   const hist=new Array(64).fill(0);let count=0;
+   for(const u of [.2,.4,.6,.8])for(const v of [.25,.4,.55,.7]){
+    const x=Math.round(((1-v)*((1-u)*p[11].x+u*p[12].x)+v*((1-u)*p[23].x+u*p[24].x))*w);
+    const y=Math.round(((1-v)*((1-u)*p[11].y+u*p[12].y)+v*((1-u)*p[23].y+u*p[24].y))*h);
+    if(x<1||x>=w-1||y<1||y>=h-1)continue;
+    let r=0,g=0,b=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const k=((y+dy)*w+x+dx)*4;r+=pixels[k];g+=pixels[k+1];b+=pixels[k+2];}
+    hist[(Math.floor(r/9)>>6)*16+(Math.floor(g/9)>>6)*4+(Math.floor(b/9)>>6)]++;count++;
+   }
+   return count>=8?hist.map(v=>v/count):null;
+  });
+ }catch(_){return [];}
+}
 let detector;const tracker=new AthleteTracker();
 self.onmessage=async({data})=>{
   if(data.type==='select'){tracker.select(data.point);return;}
@@ -56,7 +82,7 @@ self.onmessage=async({data})=>{
     try{
       detector.detectForVideo(data.bitmap,data.time,output=>{
       detection=output;
-      const result=tracker.update(detection.landmarks,data.sampleTime??data.time);
+      const result=tracker.update(detection.landmarks,data.sampleTime??data.time,[],appearanceDescriptors(data.bitmap,detection.landmarks));
       // Use the same whole-body rectangle that the user sees, including
       // hips, shoulders and hands during seat/front/back landings.
       const poseIndex=detection.landmarks.indexOf(result.selected?.pose);
@@ -66,7 +92,7 @@ self.onmessage=async({data})=>{
       self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,
         people:result.people.map(c=>c===result.selected&&box?box:c.box),selected:complete?box:null,locked:result.locked,
         y:valid?box.bottom:null,bodyY:valid?result.selected.hipY:null,
-        message:!result.locked?'請點選正在跳的運動員':!valid?'暫時未看清運動員，保留本套並等待接續':'持續追蹤已選運動員'});
+        message:!result.locked?'請點選正在跳的運動員':!valid?'所選運動員追蹤未確認，保留本套；不自動轉跟旁人':'持續追蹤已選運動員'});
       });
     }catch(e){self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,people:[],selected:null,locked:!!tracker.target,y:null,bodyY:null,message:'暫時無法辨識，保留本套並等待接續'});}
     finally{detection?.segmentationMasks?.forEach(m=>m.close());data.bitmap.close();}

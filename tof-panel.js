@@ -88,11 +88,11 @@
 #tof-panel{position:fixed;inset:0;z-index:2147483646;background:#111;color:#f4edda;overflow:auto;font:16px system-ui;padding:16px;box-sizing:border-box}
 #tof-panel *{box-sizing:border-box}#tof-panel .tof-wrap{max-width:1200px;margin:auto}#tof-panel h2{color:#e1c474;margin:0 0 12px}
 #tof-panel button{padding:12px;margin:4px 0;border-radius:10px;background:#d9bd70;color:#17130a;border:1px solid #8c7840;font:inherit;cursor:pointer}#tof-panel button:disabled{opacity:.4}
-#tof-panel .tof-stage{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px;align-items:start}#tof-panel .tof-controls{position:sticky;top:8px;max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:5px;background:#1b1915;padding:12px;border:1px solid #796638;border-radius:12px}
+#tof-panel .tof-stage{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;align-items:start}#tof-panel .tof-stage>div{grid-column:2;grid-row:1}#tof-panel .tof-controls{grid-column:1;grid-row:1;position:sticky;top:8px;max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:5px;background:#1b1915;padding:12px;border:1px solid #796638;border-radius:12px}
 #tof-panel .tof-live-score{border:1px solid #796638;border-radius:10px;padding:8px;background:#111;color:#e1c474;line-height:1.5}#tof-panel #tof-side-air{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}#tof-panel #tof-side-quality,#tof-panel #tof-side-speed{display:block;color:#c5beb0}#tof-panel .tof-primary{position:sticky;top:-12px;background:#1b1915;z-index:1;display:flex;flex-direction:column}#tof-panel canvas{display:block;width:100%;max-height:62vh;object-fit:contain;background:#000;touch-action:none;cursor:crosshair}
 #tof-panel table{width:100%;text-align:right;border-collapse:collapse}#tof-panel th,#tof-panel td{padding:9px 5px;border-bottom:1px solid #3d3524}#tof-panel .tof-active{background:#3a321c;color:#ffe8a0}
 #tof-panel p{line-height:1.5}#tof-panel input{width:100%;accent-color:#d9bd70}#tof-panel .tof-box{padding:12px;border:1px solid #796638;border-radius:12px;margin:12px 0;overflow:auto}#tof-panel .tof-small{font-size:13px;color:#c5beb0}#tof-panel #tof-status{min-height:40px}
-@media(max-width:600px){#tof-panel{padding:8px;font-size:13px}#tof-panel .tof-stage{grid-template-columns:minmax(0,1fr) 132px;gap:8px}#tof-panel .tof-controls{padding:7px;gap:3px}#tof-panel button{padding:10px 5px}#tof-panel .tof-primary{position:sticky;top:-12px;background:#1b1915;z-index:1;display:flex;flex-direction:column}#tof-panel canvas{max-height:55vh}#tof-panel th,#tof-panel td{padding:8px 3px}}
+@media(max-width:600px){#tof-panel{padding:8px;font-size:13px}#tof-panel .tof-stage{grid-template-columns:132px minmax(0,1fr);gap:8px}#tof-panel .tof-controls{padding:7px;gap:3px}#tof-panel button{padding:10px 5px}#tof-panel .tof-primary{position:sticky;top:-12px;background:#1b1915;z-index:1;display:flex;flex-direction:column}#tof-panel canvas{max-height:55vh}#tof-panel th,#tof-panel td{padding:8px 3px}}
 </style><div class="tof-wrap"><button id="tof-close" style="float:right">關閉</button><h2>Time of Flight · 騰空時間</h2>
 <p class="tof-small">點一下正在跳的運動員，確認綠框跟隨對象，再開始。教練及其他人可以留在畫面。黃線設在床面位置；全身長方形框的底邊高於黃線才計時，碰線或線下即視為着網，另外記錄沉網時間。適用於腳、坐、腹及背彈。</p>
 <p id="tof-mode" class="tof-small"></p><div class="tof-stage"><div><canvas id="tof-preview"></canvas><p id="tof-boundary" role="status"></p><p class="tof-small">點選身體，唔需要框住整個活動範圍。請保持全身入鏡。重選對象會清除本套結果。</p></div>
@@ -117,7 +117,7 @@
    dialog.querySelector('#tof-close').focus();dialog.onkeydown=e=>{if(e.key==='Escape')close();if(e.key==='Tab'){const items=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')];const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
    update('正在載入分析模型…');
    try{
-     worker=new Worker('tof-worker.js?v=side-timing-20261024');
+     worker=new Worker('tof-worker.js?v=identity-lock-20261024');
      worker.onmessage=({data})=>{
        if(!dialog)return;
        if(data.type==='ready'){clearTimeout(watchdog);ready=true;update('模型就緒，請設定基準線');}
