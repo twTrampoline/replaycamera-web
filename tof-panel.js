@@ -1,6 +1,7 @@
 (()=>{
  let selectedLandmarks=[],quality='lite';
  try{quality=localStorage.getItem('tof-model-quality')==='full'?'full':'lite';}catch{}
+ let renderAnimation=0;
  let lastFrameSent=-Infinity,lastLatencyMs=0,lastResultAt=0,nextFrameTimer,dialog,worker,timer,watchdog,busy=false,ready=false,counter,preview,ctx,lineInput,status,summary,list,startButton,lastY=null,generation=0,locked=false,selecting=false,boxes=[],selectedBox=null,revision=0,mode="live",fileVideo=null,fileUrl=null,fileRun=false,filePaused=false,fileSeeking=false,fileEpoch=0,seekTimer=null,loadTimer=null;
  const labels={idle:'設定基準線後按開始',ground:'請先讓人物框底邊碰到基準線或線以下',ready:'等待起跳',air:'騰空中',complete:'已辨識 10 次，請核對時間完整性',stopped:'已停止'};
  function update(message=''){
@@ -31,7 +32,7 @@
    lineInput.disabled=running;dialog.querySelector('#tof-calibrate').disabled=running||lastY===null;startButton.disabled=!ready||running||!locked||selecting||(mode==='file'&&(!fileVideo||fileVideo.readyState<2||fileSeeking));
  }
  function stopWorker(){generation++;clearInterval(timer);clearTimeout(nextFrameTimer);clearTimeout(watchdog);worker?.terminate();worker=null;busy=false;ready=false;}
- function close(){releaseFile();stopWorker();dialog?.remove();dialog=null;}
+ function close(){cancelAnimationFrame(renderAnimation);releaseFile();stopWorker();dialog?.remove();dialog=null;}
  window.traTofInvalidate=()=>{if(dialog&&mode==='live'){counter.stop('鏡頭或方向已變更，請重新設定基準線及開始');lastY=null;locked=false;boxes=[];selectedBox=null;selectedLandmarks=[];revision++;worker?.postMessage({type:'select',point:null});update();}};
  function resetSource(){revision++;counter.reset();locked=false;selecting=false;boxes=[];selectedBox=null;selectedLandmarks=[];lastY=null;worker?.postMessage({type:'select',point:null});}
  function releaseFile(){fileEpoch++;clearTimeout(seekTimer);clearTimeout(loadTimer);fileRun=false;filePaused=false;fileSeeking=false;if(fileVideo){fileVideo.onloadeddata=fileVideo.onerror=fileVideo.onseeked=null;fileVideo.pause();fileVideo.removeAttribute('src');fileVideo.load();fileVideo.remove();fileVideo=null;}if(fileUrl){URL.revokeObjectURL(fileUrl);fileUrl=null;}}
@@ -59,7 +60,7 @@
    loadTimer=setTimeout(()=>{if(epoch!==fileEpoch||!dialog)return;counter.stop('影片載入逾時，請重新選擇影片');update();},15000);
    update('正在讀取影片…');
  }
- async function frame(){
+ async function frame(renderOnly=false){
    if(!dialog||document.hidden)return;
    const source=mode==='file'?fileVideo:window.traWebEngineLiveElement?.();
    const sw=mode==='file'?source?.videoWidth:source?.width,sh=mode==='file'?source?.videoHeight:source?.height;
@@ -67,6 +68,7 @@
    // Float mask rows require a four-pixel-aligned width in the vision runtime.
    const width=Math.max(4,Math.round(480*Math.min(1,sw/sh)/4)*4),height=Math.round(width*sh/sw);
    if(preview.width!==width||preview.height!==height){preview.width=width;preview.height=height;}
+   if(renderOnly){
    ctx.drawImage(source,0,0,width,height);
    ctx.strokeStyle='#f3d77d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,counter.line*height);ctx.lineTo(width,counter.line*height);ctx.stroke();
    const overlayFresh=mode==='file'||performance.now()-(lastResultAt-lastLatencyMs)<=250;
@@ -80,6 +82,8 @@
    }
    if(selectedBox&&overlayFresh){ctx.strokeStyle='#65e5a0';ctx.lineWidth=4;ctx.strokeRect(selectedBox.x*width,selectedBox.y*height,(selectedBox.right-selectedBox.x)*width,(selectedBox.bottom-selectedBox.y)*height);}
    if(selectedBox&&lastY!==null&&overlayFresh){ctx.strokeStyle=lastY<counter.line?'#65e5a0':'#efb477';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(selectedBox.x*width,lastY*height);ctx.lineTo(selectedBox.right*width,lastY*height);ctx.stroke();}
+   return;
+   }
    if(!ready||busy||performance.now()-lastFrameSent<1000/15||counter.phase==='complete'||(mode==='file'&&fileRun&&filePaused))return;
    const g=generation,rev=revision,time=performance.now(),sampleTime=mode==='file'?source.currentTime*1000:time;busy=true;lastFrameSent=time;
    try{
@@ -169,6 +173,10 @@
      worker.onerror=()=>{counter.stop('分析功能無法啟動，請改用更新版 Safari 或電腦 Chrome；錄影不受影響');stopWorker();update();};
      worker.postMessage({type:'init',quality});
      watchdog=setTimeout(()=>{counter.stop('模型載入逾時，請檢查網絡後再試');stopWorker();update();},60000);
+     // Display follows screen refresh independently of model throughput.
+     // Keep inference bounded to one frame in flight; do not queue old frames.
+     const render=()=>{if(!dialog)return;frame(true);renderAnimation=requestAnimationFrame(render);};
+     renderAnimation=requestAnimationFrame(render);
      timer=setInterval(frame,1000/15);
    }catch(e){counter.stop('此瀏覽器不支援背景分析；錄影不受影響');update();}
  };

@@ -1,5 +1,5 @@
 {
-  "source_commit": "d83b856",
+  "source_commit": "bf2023d",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -47,7 +47,8 @@
     "compact-controls-below-video",
     "consecutive-appearance-reacquisition",
     "optional-full-body-pose-model",
-    "selected-athlete-skeleton-overlay"
+    "selected-athlete-skeleton-overlay",
+    "independent-live-preview-rendering"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -70,5 +71,7 @@
   "sidebar_tracking_tests": "Eleven JS regression suites passed, including connected-background rejection and skipping nonselected mask pixels. Mobile 390x844 synthetic UI: sidebar air 10.61s + bed 3.97s = 14.58s for ten jumps. Latest small-person screenshot yielded no pose with both baseline and revised model; desktop warm inference about 55–70ms. Phone speed/accuracy improvement unverified; do not claim real-time scoring solved.",
   "identity_tracking_tests": "Eleven JS suites passed, including actual pixel clothing descriptors, bystander rejection, pose reorder, small false torso rejection and long-loss uncertainty. Mobile 390x844 synthetic fixture completed ten flights: 10.66s air + 3.90s bed. Original continuous athlete footage accuracy remains unverified; similar clothing, occlusion and missed poses can still cause incorrect or lost tracking.",
   "tracking_recovery_tests": "Eleven regression suites passed, including consecutive matching athlete reacquisition after stale vertical prediction. Mobile 390x844 synthetic fixture completed ten actions with compact buttons below video and score at right. Actual user video counting remains unverified.",
-  "full_body_model_tests": "Eleven regression suites passed. Full model loaded and returned selected pose and segmentation for inverted-athlete screenshot in real desktop browser. Mobile model selector checked. Continuous user ten-jump video and phone throughput remain unverified."
+  "full_body_model_tests": "Eleven regression suites passed. Full model loaded and returned selected pose and segmentation for inverted-athlete screenshot in real desktop browser. Mobile model selector checked. Continuous user ten-jump video and phone throughput remain unverified.",
+  "reference_video_investigation": "12.54s user MOV tested locally at 15 samples/s with fixed initial selection. CPU Lite: 11/188 usable selected bottoms and one flight; Full: 3/188 and zero flights; cropped Full: 21/188 and two flights. Mean worker response 86/109/115ms. GPU trial was faster but did not track reliably and is not released. These are end-to-end tests, not model accuracy scores. Original video not published. Reliable ten-jump live counting remains unresolved.",
+  "preview_render_test": "11 regression suites passed; actual desktop browser preview fixture measured 60 draws/s with separate requestAnimationFrame, inference stays bounded to one pending frame."
 }
