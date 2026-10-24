@@ -31,17 +31,17 @@
         return;
       }
       this.airTime+=airborne;
-      if(this.routineStart===null&&t-this.takeoff>=150)this.routineStart=this.takeoff;
+      if(this.routineStart===null)this.routineStart=this.takeoff;
       if(above)this.trackPeak(bodyY);
       if(!above){this.finish(crossing);if(this.phase!=='complete'){this.updateBed(t);if(this.details.length)this.details[this.details.length-1].observedBed+=(t-crossing)/1000;}return;}
       if(t-this.takeoff>5000){this.uncertain=true;this.notice='未確認下一次着網，保留目前動作；請核對人物框及基準線';}
     }
     beginFlight(t,observed,bodyY,uncertain){
-      this.updateBed(t);this.phase='air';this.takeoff=t;this.airTime=observed;this.peak=Infinity;this.ascent=0;this.uncertain=uncertain;this.trackPeak(bodyY);
+      this.updateBed(t);this.phase='air';this.takeoff=t;if(this.routineStart===null)this.routineStart=t;this.airTime=observed;this.peak=Infinity;this.ascent=0;this.uncertain=uncertain;this.trackPeak(bodyY);
     }
     finish(t){
       const duration=t-this.takeoff;
-      if(duration>=150){
+      if(duration>0){
         if(this.routineStart===null)this.routineStart=this.takeoff;
         const air=duration/1000,ascent=Math.min(air,this.ascent/1000);
         this.results.push(air);this.details.push({takeoff:this.takeoff,landing:t,ascent,descent:air-ascent,air,observedAir:Math.min(air,this.airTime/1000),bed:0,observedBed:0,bedEstimated:false,estimated:this.uncertain});

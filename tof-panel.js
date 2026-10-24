@@ -126,10 +126,21 @@
    const modelHint=document.createElement('small');modelHint.textContent='切換模型會清除本套並需重新上傳影片、選人。綠色骨架顯示已選人物；完整模型可能較慢。';
    settings.append(modelLabel,modelChoice,modelHint);
    videoColumn.append(settings);controls.replaceChildren(score);
+   const mediaControls=dialog.querySelector('#tof-media-controls');
+   mediaControls.querySelector('label').textContent='動作開始位置';
+   videoColumn.insertBefore(mediaControls,actions);
+   const baseline=document.createElement('div');baseline.className='tof-baseline';
+   baseline.append(dialog.querySelector('label[for="tof-line"]'),dialog.querySelector('#tof-line'));
+   const lineHint=document.createElement('small');lineHint.textContent='上方：空中　碰線／下方：沉網';baseline.append(lineHint);controls.append(baseline);
+
    const layout=document.createElement('style');layout.textContent=`
 #tof-panel .tof-stage{grid-template-columns:minmax(0,1fr) 200px}
 #tof-panel .tof-stage>div{grid-column:1;grid-row:1}
 #tof-panel .tof-controls{grid-column:2;grid-row:1;padding:0;border:0;background:none}
+#tof-panel #tof-media-controls{margin:8px 0}#tof-panel #tof-media-controls input{width:100%}
+#tof-panel .tof-baseline{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:12px;padding:8px;border:1px solid #796638;border-radius:10px}
+#tof-panel .tof-baseline input{writing-mode:vertical-lr;direction:ltr;width:32px;height:200px;touch-action:none;accent-color:#e1c474}
+#tof-panel .tof-baseline small{font-size:11px;color:#c5beb0}
 #tof-panel .tof-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 #tof-panel .tof-actions button,#tof-panel #tof-pause{font-size:13px;padding:8px 10px;min-height:36px;margin:0}
 #tof-panel .tof-settings{display:flex;flex-direction:column;gap:8px}

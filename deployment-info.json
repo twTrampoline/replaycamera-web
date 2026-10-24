@@ -1,5 +1,5 @@
 {
-  "source_commit": "bf2023d",
+  "source_commit": "6106ebd",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -48,7 +48,10 @@
     "consecutive-appearance-reacquisition",
     "optional-full-body-pose-model",
     "selected-athlete-skeleton-overlay",
-    "independent-live-preview-rendering"
+    "independent-live-preview-rendering",
+    "immediate-line-contact-without-duration-filter",
+    "vertical-right-baseline-slider",
+    "video-start-slider-before-actions"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -73,5 +76,6 @@
   "tracking_recovery_tests": "Eleven regression suites passed, including consecutive matching athlete reacquisition after stale vertical prediction. Mobile 390x844 synthetic fixture completed ten actions with compact buttons below video and score at right. Actual user video counting remains unverified.",
   "full_body_model_tests": "Eleven regression suites passed. Full model loaded and returned selected pose and segmentation for inverted-athlete screenshot in real desktop browser. Mobile model selector checked. Continuous user ten-jump video and phone throughput remain unverified.",
   "reference_video_investigation": "12.54s user MOV tested locally at 15 samples/s with fixed initial selection. CPU Lite: 11/188 usable selected bottoms and one flight; Full: 3/188 and zero flights; cropped Full: 21/188 and two flights. Mean worker response 86/109/115ms. GPU trial was faster but did not track reliably and is not released. These are end-to-end tests, not model accuracy scores. Original video not published. Reliable ten-jump live counting remains unresolved.",
-  "preview_render_test": "11 regression suites passed; actual desktop browser preview fixture measured 60 draws/s with separate requestAnimationFrame, inference stays bounded to one pending frame."
+  "preview_render_test": "11 regression suites passed; actual desktop browser preview fixture measured 60 draws/s with separate requestAnimationFrame, inference stays bounded to one pending frame.",
+  "line_boundary_tests": "Eleven regression suites passed. Equality/below is bed, above is air, first takeoff starts immediately, no 150ms duration filter. Mobile 390x844 with original MOV verified right vertical baseline and starting-position slider below video before buttons. Tracking completeness remains unresolved; strict crossings can count noisy boxes."
 }
