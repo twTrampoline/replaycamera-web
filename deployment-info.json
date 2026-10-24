@@ -1,5 +1,5 @@
 {
-  "source_commit": "c006d6b",
+  "source_commit": "d83b856",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -45,7 +45,9 @@
     "conservative-identity-reacquisition",
     "right-timing-card",
     "compact-controls-below-video",
-    "consecutive-appearance-reacquisition"
+    "consecutive-appearance-reacquisition",
+    "optional-full-body-pose-model",
+    "selected-athlete-skeleton-overlay"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -67,5 +69,6 @@
   "interval_timing_tests": "Eleven JS suites passed. Synthetic 0.75s to 10.73s routine with missing detections: 8s flight + 1.98s bed = 9.98s, with unverified classification explicitly flagged. 200 deterministic random-dropout sequences reconciled. Browser ten-flight fixture: 10.59s air + 3.97s bed = 14.56s start-to-end. This fixes discarded elapsed time, not actual pose/transition accuracy; original user video not provided.",
   "sidebar_tracking_tests": "Eleven JS regression suites passed, including connected-background rejection and skipping nonselected mask pixels. Mobile 390x844 synthetic UI: sidebar air 10.61s + bed 3.97s = 14.58s for ten jumps. Latest small-person screenshot yielded no pose with both baseline and revised model; desktop warm inference about 55–70ms. Phone speed/accuracy improvement unverified; do not claim real-time scoring solved.",
   "identity_tracking_tests": "Eleven JS suites passed, including actual pixel clothing descriptors, bystander rejection, pose reorder, small false torso rejection and long-loss uncertainty. Mobile 390x844 synthetic fixture completed ten flights: 10.66s air + 3.90s bed. Original continuous athlete footage accuracy remains unverified; similar clothing, occlusion and missed poses can still cause incorrect or lost tracking.",
-  "tracking_recovery_tests": "Eleven regression suites passed, including consecutive matching athlete reacquisition after stale vertical prediction. Mobile 390x844 synthetic fixture completed ten actions with compact buttons below video and score at right. Actual user video counting remains unverified."
+  "tracking_recovery_tests": "Eleven regression suites passed, including consecutive matching athlete reacquisition after stale vertical prediction. Mobile 390x844 synthetic fixture completed ten actions with compact buttons below video and score at right. Actual user video counting remains unverified.",
+  "full_body_model_tests": "Eleven regression suites passed. Full model loaded and returned selected pose and segmentation for inverted-athlete screenshot in real desktop browser. Mobile model selector checked. Continuous user ten-jump video and phone throughput remain unverified."
 }

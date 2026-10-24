@@ -1,4 +1,4 @@
-importScripts('tof-athlete-tracker.js?v=tracking-recovery-20261024');
+importScripts('tof-athlete-tracker.js?v=body-model-20261024');
 // Extract only the selected person's connected silhouette, not a torso-only
 // landmark envelope. Ignore detached mask noise and other people's components.
 function silhouetteBox(mask,pose){
@@ -71,7 +71,7 @@ self.onmessage=async({data})=>{
       const {FilesetResolver,PoseLandmarker}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs');
       const files=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm');
       detector=await PoseLandmarker.createFromOptions(files,{
-        baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:'CPU'},
+        baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_'+(data.quality==='full'?'full':'lite')+'/float16/1/pose_landmarker_'+(data.quality==='full'?'full':'lite')+'.task',delegate:'CPU'},
         canvas:new OffscreenCanvas(256,256),runningMode:'VIDEO',numPoses:6,outputSegmentationMasks:true,
         minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45,
       });self.postMessage({type:'ready'});
@@ -90,6 +90,7 @@ self.onmessage=async({data})=>{
       const complete=!!box;
       const valid=complete&&!!box&&[box.x,box.y,box.right,box.bottom].every(Number.isFinite)&&box.x>=0&&box.y>=0&&box.right<=1&&box.bottom<=1;
       self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,
+        landmarks:result.selected?.pose?.map(p=>({x:p.x,y:p.y,visibility:p.visibility}))||[],
         people:result.people.map(c=>c===result.selected&&box?box:c.box),selected:complete?box:null,locked:result.locked,
         y:valid?box.bottom:null,bodyY:valid?result.selected.hipY:null,
         message:!result.locked?'請點選正在跳的運動員':!valid?'所選運動員追蹤未確認，保留本套；不自動轉跟旁人':'持續追蹤已選運動員'});
