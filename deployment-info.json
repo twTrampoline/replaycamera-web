@@ -1,5 +1,5 @@
 {
-  "source_commit": "cc6f325",
+  "source_commit": "fde501b",
   "features": [
     "firebase-email-password-login",
     "server-side-signup-disabled",
@@ -52,7 +52,12 @@
     "immediate-line-contact-without-duration-filter",
     "vertical-right-baseline-slider",
     "video-start-slider-before-actions",
-    "selected-skeleton-box-fallback-for-missing-segmentation"
+    "selected-skeleton-box-fallback-for-missing-segmentation",
+    "edgetam-whole-body-video-memory",
+    "drag-whole-athlete-selection",
+    "original-resolution-analysis",
+    "isolated-mask-speckle-rejection",
+    "pause-resume-frame-progress"
   ],
   "login_gate_tests": "passed",
   "live_account_login": "confirmed-by-owner",
@@ -79,5 +84,6 @@
   "reference_video_investigation": "12.54s user MOV tested locally at 15 samples/s with fixed initial selection. CPU Lite: 11/188 usable selected bottoms and one flight; Full: 3/188 and zero flights; cropped Full: 21/188 and two flights. Mean worker response 86/109/115ms. GPU trial was faster but did not track reliably and is not released. These are end-to-end tests, not model accuracy scores. Original video not published. Reliable ten-jump live counting remains unresolved.",
   "preview_render_test": "11 regression suites passed; actual desktop browser preview fixture measured 60 draws/s with separate requestAnimationFrame, inference stays bounded to one pending frame.",
   "line_boundary_tests": "Eleven regression suites passed. Equality/below is bed, above is air, first takeoff starts immediately, no 150ms duration filter. Mobile 390x844 with original MOV verified right vertical baseline and starting-position slider below video before buttons. Tracking completeness remains unresolved; strict crossings can count noisy boxes.",
-  "tracking_note": "When connected person mask is missing, the selected pose box is still drawn in green and its bottom edge is used for the strict line test. Pose box may be less accurate; keep visual confirmation. No accuracy claim."
+  "tracking_note": "Active tracker is EdgeTAM whole-subject memory with box prompt, not face/pose detection. Bottom above line is air; equality/below is bed. Low-confidence or occluded observations are explicitly marked estimated. No universal accuracy claim.",
+  "memory_tracking_tests": "12 regression suites passed. User reference video verified locally: 10/15 samples per second each yielded ten correct-order cycles, ending about 11.8s. Whole-panel frame-step test with pause/resume: ten flights, air 7.56s plus bed 3.45s = 11.01s routine, 0.27s occluded bed classification marked estimated. One-times-speed playback through live pipeline yielded ten flights (7.43s air, 3.53s bed). Desktop browser testing only; actual iPhone throughput and other videos not certified. Reference video/images were not uploaded."
 }

@@ -1,4 +1,4 @@
-importScripts('tof-athlete-tracker.js?v=body-model-20261024');
+importScripts('tof-athlete-tracker.js?v=profile-body-20261025');
 // Extract only the selected person's connected silhouette, not a torso-only
 // landmark envelope. Ignore detached mask noise and other people's components.
 function silhouetteBox(mask,pose){
@@ -49,12 +49,22 @@ function appearanceDescriptors(bitmap,poses){
   const context=appearanceCanvas.getContext('2d',{willReadFrequently:true});
   context.drawImage(bitmap,0,0,w,h);const pixels=context.getImageData(0,0,w,h).data;
   return poses.map(p=>{
-   const corners=[p[11],p[12],p[23],p[24]];
-   if(corners.some(v=>!v||v.visibility<.3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))return null;
+   let corners=[p[11],p[12],p[23],p[24]];
+   const visible=v=>v&&v.visibility>=.3&&Number.isFinite(v.x)&&Number.isFinite(v.y);
+   if(!corners.every(visible)){
+     const side=[[11,23],[12,24]].map(([a,b])=>[p[a],p[b]]).find(pair=>pair.every(visible));
+     if(!side)return null;
+     const [shoulder,hip]=side,dx=hip.x-shoulder.x,dy=hip.y-shoulder.y;
+     if(Math.hypot(dx,dy)<.025)return null;
+     // Sample a narrow strip around the visible side of the torso. No face
+     // pixels, mirrored facial points, or invisible far-side joints needed.
+     const offset=(v,sign)=>({x:v.x+sign*dy*.1,y:v.y-sign*dx*.1});
+     corners=[offset(shoulder,-1),offset(shoulder,1),offset(hip,-1),offset(hip,1)];
+   }
    const hist=new Array(64).fill(0);let count=0;
    for(const u of [.2,.4,.6,.8])for(const v of [.25,.4,.55,.7]){
-    const x=Math.round(((1-v)*((1-u)*p[11].x+u*p[12].x)+v*((1-u)*p[23].x+u*p[24].x))*w);
-    const y=Math.round(((1-v)*((1-u)*p[11].y+u*p[12].y)+v*((1-u)*p[23].y+u*p[24].y))*h);
+    const x=Math.round(((1-v)*((1-u)*corners[0].x+u*corners[1].x)+v*((1-u)*corners[2].x+u*corners[3].x))*w);
+    const y=Math.round(((1-v)*((1-u)*corners[0].y+u*corners[1].y)+v*((1-u)*corners[2].y+u*corners[3].y))*h);
     if(x<1||x>=w-1||y<1||y>=h-1)continue;
     let r=0,g=0,b=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const k=((y+dy)*w+x+dx)*4;r+=pixels[k];g+=pixels[k+1];b+=pixels[k+2];}
     hist[(Math.floor(r/9)>>6)*16+(Math.floor(g/9)>>6)*4+(Math.floor(b/9)>>6)]++;count++;
@@ -87,9 +97,13 @@ self.onmessage=async({data})=>{
       // hips, shoulders and hands during seat/front/back landings.
       const poseIndex=detection.landmarks.indexOf(result.selected?.pose);
       const box=poseIndex>=0?silhouetteBox(detection.segmentationMasks?.[poseIndex],result.selected.pose):null;
-      const trackingBox=box||result.selected?.box||null;
+      // A head-only mask must not become a landing observation.
+      // Shoulder/hip containment is a minimum check, not proof of a complete silhouette.
+      const contains=i=>{const p=result.selected?.pose?.[i];return box&&p&&p.visibility>=.45&&p.x>=box.x-.025&&p.x<=box.right+.025&&p.y>=box.y-.025&&p.y<=box.bottom+.025;};
+      const bodyConfirmed=!!box&&[11,12].some(contains)&&[23,24].some(contains);
+      const trackingBox=(bodyConfirmed?box:null)||result.selected?.box||null;
       const complete=!!trackingBox;
-      const valid=complete&&[trackingBox.x,trackingBox.y,trackingBox.right,trackingBox.bottom].every(Number.isFinite)&&trackingBox.x>=0&&trackingBox.y>=0&&trackingBox.right<=1&&trackingBox.bottom<=1;
+      const valid=bodyConfirmed&&complete&&[trackingBox.x,trackingBox.y,trackingBox.right,trackingBox.bottom].every(Number.isFinite)&&trackingBox.x>=0&&trackingBox.y>=0&&trackingBox.right<=1&&trackingBox.bottom<=1;
       self.postMessage({type:'sample',time:data.time,sampleTime:data.sampleTime,revision:data.revision,
         landmarks:result.selected?.pose?.map(p=>({x:p.x,y:p.y,visibility:p.visibility}))||[],
         people:result.people.map(c=>c===result.selected&&trackingBox?trackingBox:c.box),selected:complete?trackingBox:null,locked:result.locked,

@@ -1,0 +1,71 @@
+{
+  "image_size": 512,
+  "grid": 32,
+  "tokens": 1024,
+  "nspat": 7,
+  "nptr": 64,
+  "memlen": 3648,
+  "hidden": 256,
+  "mem_dim": 64,
+  "ptr_tokens": 4,
+  "max_obj_ptrs": 16,
+  "sizes_mb": {
+    "encoder_fp32": 19.752869,
+    "memattn_fp32": 15.816571,
+    "heads_fp32": 18.975542,
+    "heads_prompt_fp32": 18.832026,
+    "heads_mask_fp32": 15.724232,
+    "memenc_fp32": 6.711446,
+    "memenc_f16in": 6.729507,
+    "encoder_fp16": 10.000574,
+    "memattn_fp16": 7.945427,
+    "heads_fp16": 9.577769,
+    "heads_prompt_fp16": 9.612576,
+    "heads_mask_fp16": 7.945585
+  },
+  "checks": {
+    "memattn_rewrite_max_abs": 7.152557373046875e-07,
+    "memattn_ref_std": 0.5773161053657532,
+    "mask_down4_max_abs": 4.76837158203125e-07
+  },
+  "heads_mask_inputs": [
+    "pix_feat",
+    "mask_full"
+  ],
+  "has_mask_prompt": false,
+  "consts": {
+    "no_mem_embed": {
+      "offset": 0,
+      "count": 256,
+      "shape": [
+        256
+      ]
+    },
+    "maskmem_tpos_enc": {
+      "offset": 1024,
+      "count": 448,
+      "shape": [
+        7,
+        1,
+        1,
+        64
+      ]
+    }
+  },
+  "consts_bytes": 2816,
+  "tiers": [
+    512
+  ],
+  "sigmoid_scale_for_mem_enc": 20.0,
+  "sigmoid_bias_for_mem_enc": -10.0,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ]
+}

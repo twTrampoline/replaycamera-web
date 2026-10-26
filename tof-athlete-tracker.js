@@ -6,7 +6,11 @@ class AthleteTracker {
   candidates(poses,bodyBoxes=[],appearances=[]){return poses.map((p,index)=>{
     const torso=[11,12,23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
     const hips=[23,24].map(i=>p[i]).filter(v=>v&&v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
-    if(torso.length<3||!hips.length)return null;
+    // A profile can expose only one shoulder and the hip on that side.
+    // Face landmarks are deliberately irrelevant to identity admission.
+    const visible=i=>p[i]&&p[i].visibility>=.45&&Number.isFinite(p[i].x)&&Number.isFinite(p[i].y);
+    const sideLengths=[[11,23],[12,24]].filter(([a,b])=>visible(a)&&visible(b)).map(([a,b])=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y));
+    if(!hips.length||!sideLengths.some(length=>length>=.025))return null;
     const points=p.filter(v=>v.visibility>=.45&&Number.isFinite(v.x)&&Number.isFinite(v.y));
     const x=torso.reduce((a,v)=>a+v.x,0)/torso.length,y=torso.reduce((a,v)=>a+v.y,0)/torso.length;
     const hipY=hips.reduce((a,v)=>a+v.y,0)/hips.length;
